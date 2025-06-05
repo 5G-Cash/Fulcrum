@@ -3,7 +3,7 @@
 [![Docker Build](https://github.com/cculianu/Fulcrum/actions/workflows/publish.yml/badge.svg)](https://github.com/cculianu/Fulcrum/actions/workflows/publish.yml)
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/jonny/BitcoinCash/package/fulcrum/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/jonny/BitcoinCash/package/fulcrum/)
 
-A fast & nimble SPV server for Bitcoin Cash, Bitcoin BTC, and Litecoin. 
+A fast & nimble SPV server for Bitcoin Cash, Bitcoin BTC, Litecoin, and 5G-CASH (VGC).
 
 For more information, visit [The Official Fulcrum Website™️](https://fulcrumserver.org/).
 
@@ -29,6 +29,7 @@ GPLv3. See the included `LICENSE.txt` file or [visit gnu.org and read the licens
     - *For **BCH***: Bitcoin Cash Node, Bitcoin Unlimited Cash, Flowee, and bchd have all been tested extensively and are known to work well with this software.
     - *For **BTC***: Bitcoin Core v0.17.0 or later.  No other full nodes are supported by this software for BTC.
     - *For **LTC***: Litecoin Core v0.17.0 or later.  No other full nodes are supported by this software for LTC.
+    - *For **VGC***: a 5G-CASH daemon advertising a `/Fitoshi:` subversion string.
       - If using Litcoin Core v0.21.2 or above, your daemon is serializing data using mweb extensions. While Fulcrum understands this serialization format, your Electrum-LTC clients may not. You can run `litecoind` with `-rpcserialversion=1` to have your daemon return transactions in pre-mweb format which is understood by most Electrum-LTC clients.
     - The node must have txindex enabled e.g. `txindex=1`.
     - The node must not be a pruning node.

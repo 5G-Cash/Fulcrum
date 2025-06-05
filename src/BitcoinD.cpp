@@ -195,7 +195,7 @@ BitcoinD *BitcoinDMgr::getBitcoinD()
 
 namespace {
     struct BitcoinDVersionParseResult {
-        bool isBchd{}, isCore{}, isBU{}, isBCHN{}, isLTC{}, isFlowee{};
+        bool isBchd{}, isCore{}, isBU{}, isBCHN{}, isLTC{}, isVGC{}, isFlowee{};
         Version version;
 
         constexpr BitcoinDVersionParseResult() noexcept = default;
@@ -227,6 +227,7 @@ namespace {
             isBU = subversion.startsWith("/BCH Unlimited:");
             isBCHN = subversion.startsWith("/Bitcoin Cash Node:");
             isLTC = subversion.startsWith("/LitecoinCore:");
+            isVGC = subversion.startsWith("/Fitoshi:");
             isFlowee = subversion.startsWith("/Flowee:");
             // regular bitcoind, "version" is reliable and always the same format
             version = Version::BitcoinDCompact(val);
@@ -243,7 +244,7 @@ namespace {
         // at the time of this writing, released BU is 1.9.0 and it definitely lacks the dsproof RPC
         if (isBU && version < Version{1, 9, 1})
             return true;
-        if (isCore || isLTC) // core and/or ltc will definitely never add this feature
+        if (isCore || isLTC || isVGC) // core, ltc or vgc will definitely never add this feature
             return true;
         // for all other remote daemons, return false so that calling code will probe.
         return false;
@@ -279,8 +280,9 @@ void BitcoinDMgr::refreshBitcoinDNetworkInfo()
                 }(bitcoinDInfo.subversion, networkInfo);
                 // assign to shared object now from stack object BitcoinDVersionParseResult
                 std::tie(bitcoinDInfo.isBchd, bitcoinDInfo.isCore, bitcoinDInfo.isBU, bitcoinDInfo.isLTC,
-                         bitcoinDInfo.isFlowee, bitcoinDInfo.version)
-                    = std::tie(res.isBchd, res.isCore, res.isBU, res.isLTC, res.isFlowee, res.version);
+                         bitcoinDInfo.isVGC, bitcoinDInfo.isFlowee, bitcoinDInfo.version)
+                    = std::tie(res.isBchd, res.isCore, res.isBU, res.isLTC,
+                                res.isVGC, res.isFlowee, res.version);
                 bitcoinDInfo.relayFee = networkInfo.value("relayfee", 0.0).toDouble();
                 bitcoinDInfo.warnings = networkInfo.value("warnings", "").toString();
                 // set quirk flags: requires 0 arg `estimatefee`?
@@ -294,7 +296,8 @@ void BitcoinDMgr::refreshBitcoinDNetworkInfo()
                             return true;
                     return false;
                 };
-                bitcoinDInfo.isZeroArgEstimateFee = !res.isCore && !res.isLTC && isZeroArgEstimateFee(bitcoinDInfo.version, bitcoinDInfo.subversion);
+                bitcoinDInfo.isZeroArgEstimateFee = !res.isCore && !res.isLTC && !res.isVGC &&
+                    isZeroArgEstimateFee(bitcoinDInfo.version, bitcoinDInfo.subversion);
                 // Implementations known to lack `getzmqnotifications`:
                 // - bchd (all versions)
                 // - BU before version 1.9.1.0
@@ -308,6 +311,7 @@ void BitcoinDMgr::refreshBitcoinDNetworkInfo()
             BTC::Coin coin = BTC::Coin::BCH; // default BCH if unknown (not segwit)
             if (res.isCore) coin = BTC::Coin::BTC; // segwit
             else if (res.isLTC) coin = BTC::Coin::LTC; // segwit
+            else if (res.isVGC) coin = BTC::Coin::VGC; // segwit
             emit coinDetected(coin);
             // next, be sure to set up the ping time appropriately for bchd vs bitcoind
             resetPingTimers(int(res.isBchd ? PingTimes::BCHD : PingTimes::Normal));
@@ -545,7 +549,7 @@ bool BitcoinDMgr::isZeroArgEstimateFee() const
 bool BitcoinDMgr::isCoreLike() const
 {
     std::shared_lock g(bitcoinDInfoLock);
-    return bitcoinDInfo.isCore || bitcoinDInfo.isLTC;
+    return bitcoinDInfo.isCore || bitcoinDInfo.isLTC || bitcoinDInfo.isVGC;
 }
 
 Version BitcoinDMgr::getBitcoinDVersion() const

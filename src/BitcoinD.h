@@ -52,6 +52,7 @@ struct BitcoinDInfo {
     bool isZeroArgEstimateFee = false; ///< true if remote bitcoind expects 0 argument "estimatefee" RPC.
     bool isCore = false; ///< true if we are actually connected to /Satoshi.. node (Bitcoin Core)
     bool isLTC = false; ///< true if we are actually connected to /LitecoinCore.. node (Litecoin)
+    bool isVGC = false; ///< true if we are actually connected to /Fitoshi.. node (5G-CASH)
     bool isBU = false; ///< true if subversion string starts with "/BCH Unlimited:"
     bool isFlowee = false; ///< true if subversion string starts with "/Flowee"
     bool lacksGetZmqNotifications = false; ///< true if bchd or BU < 1.9.1.0, or if we got an RPC error the last time we queried
@@ -125,7 +126,7 @@ public:
     /// Thread-safe.  Convenient method to avoid an extra copy. Returns getBitcoinDInfo().isZeroArgEstimateFee
     bool isZeroArgEstimateFee() const;
 
-    /// Thread-safe.  Convenient method to avoid an extra copy. Returns true iff getBitcoinDInfo().isCore || getBitcoinDInfo().isLTC.
+    /// Thread-safe.  Convenient method to avoid an extra copy. Returns true iff getBitcoinDInfo().isCore || getBitcoinDInfo().isLTC || getBitcoinDInfo().isVGC.
     bool isCoreLike() const;
 
     /// Thread-safe.  Convenient method to avoid an extra copy. Returns getBitcoinDInfo().version
