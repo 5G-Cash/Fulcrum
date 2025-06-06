@@ -3,7 +3,7 @@
 [![Docker Build](https://github.com/cculianu/Fulcrum/actions/workflows/publish.yml/badge.svg)](https://github.com/cculianu/Fulcrum/actions/workflows/publish.yml)
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/jonny/BitcoinCash/package/fulcrum/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/jonny/BitcoinCash/package/fulcrum/)
 
-A fast & nimble SPV server for Bitcoin Cash, Bitcoin BTC, and Litecoin. 
+A fast & nimble SPV server for Bitcoin Cash, Bitcoin BTC, Litecoin, and 5G-CASH (VGC).
 
 For more information, visit [The Official Fulcrum Website™️](https://fulcrumserver.org/).
 
@@ -20,7 +20,7 @@ GPLv3. See the included `LICENSE.txt` file or [visit gnu.org and read the licens
 - *Fast:* Written in 100% modern `C++20` using multi-threaded and asynchronous programming techniques.
 - *A drop-in replacement for ElectronX/ElectrumX:* Fulcrum is 100% protocol-level compatible with the [Electrum Cash 1.5.3 protocol](https://electrum-cash-protocol.readthedocs.io/en/latest/). Existing server admins should feel right at home with this software since installation and management of it is nearly identical to ElectronX/ElectrumX server.
 - *Cross-platform:* While this codebase was mainly developed and tested on MacOS, Windows and Linux, it should theoretically work on any modern OS (such as *BSD) that has Qt5 Core and Qt5 Networking available.
-- ***NEW!*** *Triple-coin:* Supports BCH, BTC and LTC.
+- ***NEW!*** *Quad-coin:* Supports BCH, BTC, LTC and VGC.
 
 ### Requirements
 
@@ -29,7 +29,8 @@ GPLv3. See the included `LICENSE.txt` file or [visit gnu.org and read the licens
     - *For **BCH***: Bitcoin Cash Node, Bitcoin Unlimited Cash, Flowee, and bchd have all been tested extensively and are known to work well with this software.
     - *For **BTC***: Bitcoin Core v0.17.0 or later.  No other full nodes are supported by this software for BTC.
     - *For **LTC***: Litecoin Core v0.17.0 or later.  No other full nodes are supported by this software for LTC.
-      - If using Litcoin Core v0.21.2 or above, your daemon is serializing data using mweb extensions. While Fulcrum understands this serialization format, your Electrum-LTC clients may not. You can run `litecoind` with `-rpcserialversion=1` to have your daemon return transactions in pre-mweb format which is understood by most Electrum-LTC clients.
+      - If using Litecoin Core v0.21.2 or above, your daemon is serializing data using mweb extensions. While Fulcrum understands this serialization format, your Electrum-LTC clients may not. You can run `litecoind` with `-rpcserialversion=1` to have your daemon return transactions in pre-mweb format which is understood by most Electrum-LTC clients.
+    - *For **VGC***: A 5G-CASH node built with X16Rv2 support.
     - The node must have txindex enabled e.g. `txindex=1`.
     - The node must not be a pruning node.
     - *Optional*: For best results, enable zmq for the "hasblock" topic using e.g. `zmqpubhashblock=tcp://0.0.0.0:8433` in your `bitcoin.conf` file (zmq is only available on: Core, BCHN, BU 1.9.1+, or Litecoin Core).
@@ -38,7 +39,7 @@ GPLv3. See the included `LICENSE.txt` file or [visit gnu.org and read the licens
   - `Qt Core` & `Qt Networking` libraries `5.15.2` or above (I use `5.15.2` myself).  Qt `5.15.1` (or earlier) is not supported.
   - *Optional but recommended*:
     - `libzmq 4.x` development headers and library (also known as `libzmq3-dev` on Debian/Ubuntu and `zeromq-devel` on Fedora). Fulcrum will run just fine without linking against `libzmq`, but it will run better if you do link against `libzmq` and also turn on `zmqpubhashblock` notifications in `bitcoind` (zmq is only available on: Core, BCHN, or BU 1.9.1+).
-    - `libminiupnpc 2.x/3.x` development headers and library (also known as `libminiupnpc-dev` on Debuan/Ubuntu and `miniupnpc-devel` on Fedora). Fulcrum will run just fine without this library, but it is needed if you want Fulcrum to use UPnP to open up firewall ports on your router (CLI arg: `--upnp`, conf var: `upnp=true`).
+    - `libminiupnpc 2.x/3.x` development headers and library (also known as `libminiupnpc-dev` on Debian/Ubuntu and `miniupnpc-devel` on Fedora). Fulcrum will run just fine without this library, but it is needed if you want Fulcrum to use UPnP to open up firewall ports on your router (CLI arg: `--upnp`, conf var: `upnp=true`).
   - A modern, 64-bit `C++20` compiler.  `clang-17` or `g++-13` are recommended. MSVC on Windows is not supported (please use `MinGW G++` instead, which ships with Qt Open Source Edition for Windows).
 
 ### Quickstart
@@ -84,7 +85,7 @@ You may optionally build against the **system rocksdb** (Linux only) if your dis
 
 #### Making sure `libzmq` is detected and used (optional but recommended)
 
-Ensure that `libzmq3` (Debian/Ubuntu) and/or `zeromq-devel` (Fedora/Redhat) is installed, and that `pkg-config` is also installed.  If on Unix (macOS, Linux, or Windows MinGW), then ideally the `qmake` step will find `libzmq` on your system and automatically use it. If that is not the case, you may try passing flags to `qmake` such as `LIBS+="-L/path/to/libdir_containting_libzmq -lzmq"` and `INCLUDEPATH+="/path/to/dir_containing_zmq_h"` as arguments when you invoke `qmake`.  Using `libzmq` is optional but highly recommended. If you have trouble getting Fulcrum to compile against your `libzmq`, [open a new issue](https://github.com/cculianu/Fulcrum/issues) and maybe I can help.
+Ensure that `libzmq3` (Debian/Ubuntu) and/or `zeromq-devel` (Fedora/Redhat) is installed, and that `pkg-config` is also installed.  If on Unix (macOS, Linux, or Windows MinGW), then ideally the `qmake` step will find `libzmq` on your system and automatically use it. If that is not the case, you may try passing flags to `qmake` such as `LIBS+="-L/path/to/libdir_containing_libzmq -lzmq"` and `INCLUDEPATH+="/path/to/dir_containing_zmq_h"` as arguments when you invoke `qmake`.  Using `libzmq` is optional but highly recommended. If you have trouble getting Fulcrum to compile against your `libzmq`, [open a new issue](https://github.com/cculianu/Fulcrum/issues) and maybe I can help.
 
 #### Making sure `libminiupnpc` is detected and used (optional)
 

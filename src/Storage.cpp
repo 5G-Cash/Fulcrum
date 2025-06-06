@@ -1979,8 +1979,10 @@ void Storage::startup()
             }
             p->meta = m_db;
             Debug () << "Read meta from db ok";
-            if (!p->meta.coin.isEmpty())
+            if (!p->meta.coin.isEmpty()) {
                 Log() << "Coin: " << p->meta.coin;
+                p->headerVerifier.setCoin(BTC::coinFromName(p->meta.coin));
+            }
             if (!p->meta.chain.isEmpty())
                 Log() << "Chain: " << p->meta.chain;
         } else {
@@ -2287,6 +2289,7 @@ void Storage::setCoin(const QString &coin) {
         ExclusiveLockGuard l(p->metaLock);
         p->meta.coin = coin;
     }
+    p->headerVerifier.setCoin(BTC::coinFromName(coin));
     if (!coin.isEmpty())
         Log() << "Coin: " << coin;
     save(SaveItem::Meta);
@@ -3762,7 +3765,7 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
             // all sanity check passed. Now, undo things in reverse order of what we did in addBlock above, rougly speaking
 
             // first, undo the header
-            p->headerVerifier.reset(prevHeight+1, prevHeader);
+            p->headerVerifier.reset(prevHeight+1, prevHeader, BTC::coinFromName(getCoin()));
             setDirty(true); // <-- no turning back. we clear this flag at the end
             deleteHeadersPastHeight(prevHeight); // commit change to db
             p->merkleCache->truncate(prevHeight+1); // this takes a length, not a height, which is always +1 the height
