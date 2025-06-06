@@ -28,6 +28,7 @@
 #include <QHostInfo>
 #include <QMultiMap>
 #include <QSet>
+#include <QFile>
 #include <QSslConfiguration>
 #include <QSslSocket>
 #include <QTcpSocket>
@@ -145,9 +146,13 @@ void PeerMgr::detectProtocol(const QHostAddress &addr)
 void PeerMgr::parseServersDotJson(const QString &fnIn)
 {
     seedPeers.clear();
+    const QString fn = Util::basename(fnIn); // use basename for error messages below, etc
+    if (!QFile::exists(fnIn)) {
+        Warning() << objectName() << ": " << fn << " not found, skipping";
+        return;
+    }
     const auto backend = Options::isSimdJson() ? Json::ParserBackend::FastestAvailable : Json::ParserBackend::Default; // kind of a hack
     QVariantMap m = Json::parseFile(fnIn, Json::ParseOption::RequireObject, backend).toMap();
-    const QString fn = Util::basename(fnIn); // use basename for error messages below, etc
     if (m.isEmpty()) throw InternalError(QString("PeerMgr: %1 file parsed to an empty dict! FIXME!").arg(fn));
     for (auto it = m.begin(); it != m.end(); ++it) {
         PeerInfo info;
