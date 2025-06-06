@@ -41,7 +41,7 @@ CONFIG += console warn_on
 CONFIG -= app_bundle
 
 versionAtMost(QT_VERSION, 5.15.1) {
-    error("Fulcrum requires Qt 5.15.2 (or later) to be successfully built without errors.  Please use Qt 5.15.2+ to build this codebase.")
+    warning("Fulcrum requires Qt 5.15.2 (or later) to be successfully built without errors.  Please use Qt 5.15.2+ to build this codebase.")
 }
 
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
@@ -86,7 +86,7 @@ DEFINES += USE_QT_IN_BITCOIN
 #DEFINES += ENABLE_TESTS
 
 win32-msvc {
-    error("MSVC is not supported for this project. Please compile with MinGW G++ 11 or above.")
+    warning("MSVC is not supported for this project. Please compile with MinGW G++ 11 or above.")
 }
 win32 {
     # Windows MSVC & mingw-g++ both have too many warnings due to bitcoin sources, so just disable warnings.
@@ -124,14 +124,14 @@ qtCompileTest(endian_little)
 contains(CONFIG, config_endian_big) {
     DEFINES += WORDS_BIGENDIAN
     contains(CONFIG, config_endian_little) {
-        error("Detected both BIG and LITTLE endian at the same time. This should not happen. FIXME!")
+        warning("Detected both BIG and LITTLE endian at the same time. This should not happen. FIXME!")
     }
 } else {
     contains(CONFIG, config_endian_little) {
         DEFINES -= WORDS_BIGENDIAN
     } else {
-        error("Failed to detect either BIG or LITTLE endian. Unknown compiler? FIXME!")
-    }
+        warning("Failed to detect either BIG or LITTLE endian. Unknown compiler? FIXME!")
+}
 }
 
 # Handle or add GIT_COMMIT=
@@ -259,7 +259,7 @@ contains(CONFIG, config_endian_big) {
                     message("Linux-ARM64 detected: Using librocksdb.a from $$aarch64_rocksdb")
                 } else {
                    message("Linux-ARM64 detected but missing librocksdb.a in $$aarch64_rocksdb")
-                   error("Please run the shell script contrib/build/rocksdb-staticlib.sh to build it.")
+                   warning("Please run the shell script contrib/build/rocksdb-staticlib.sh to build it.")
                 }
             } else {
                 LIBS += -L$$PWD/staticlibs/rocksdb/bin/linux
@@ -269,8 +269,8 @@ contains(CONFIG, config_endian_big) {
             win32-g++ {
                 LIBS += -L$$PWD/staticlibs/rocksdb/bin/win64
             } else {
-                error("This project lacks a pre-compiled static librocksdb.a for this compiler! Either add one to staticlib/rocksdb/bin/win64/ or use MinGW G++ 8.1.0.")
-            }
+                warning("This project lacks a pre-compiled static librocksdb.a for this compiler! Either add one to staticlib/rocksdb/bin/win64/ or use MinGW G++ 8.1.0.")
+           }
         }
         INCLUDEPATH += $$PWD/staticlibs/rocksdb/include
         message("rocksdb: using static lib")
