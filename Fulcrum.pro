@@ -467,6 +467,36 @@ SOURCES += \
     bitcoin/uint256.cpp \
     bitcoin/utilstrencodings.cpp \
     bitcoin/utilstring.cpp
+    \
+    crypto/x16Rv2/Lyra2RE.c \
+    crypto/x16Rv2/aes_helper.c \
+    crypto/x16Rv2/blake.c \
+    crypto/x16Rv2/bmw.c \
+    crypto/x16Rv2/cubehash.c \
+    crypto/x16Rv2/echo.c \
+    crypto/x16Rv2/extra.c \
+    crypto/x16Rv2/fugue.c \
+    crypto/x16Rv2/gost_streebog.c \
+    crypto/x16Rv2/groestl.c \
+    crypto/x16Rv2/hamsi.c \
+    crypto/x16Rv2/hamsi_helper.c \
+    crypto/x16Rv2/haval.c \
+    crypto/x16Rv2/haval_helper.c \
+    crypto/x16Rv2/jh.c \
+    crypto/x16Rv2/keccak.c \
+    crypto/x16Rv2/luffa.c \
+    crypto/x16Rv2/lyra2.cpp \
+    crypto/x16Rv2/md_helper.c \
+    crypto/x16Rv2/sha2.c \
+    crypto/x16Rv2/shabal.c \
+    crypto/x16Rv2/shavite.c \
+    crypto/x16Rv2/simd.c \
+    crypto/x16Rv2/skein.c \
+    crypto/x16Rv2/sph_md_helper.c \
+    crypto/x16Rv2/sph_sha2.c \
+    crypto/x16Rv2/sph_sha2big.c \
+    crypto/x16Rv2/sponge.cpp \
+    crypto/x16Rv2/tiger.cpp
 
 HEADERS += \
     bitcoin/amount.h \
@@ -513,6 +543,32 @@ HEADERS += \
     bitcoin/utilstring.h \
     bitcoin/utilvector.h \
     bitcoin/version.h
+    \
+    crypto/x16Rv2/Lyra2RE.h \
+    crypto/x16Rv2/extra.h \
+    crypto/x16Rv2/gost_streebog.h \
+    crypto/x16Rv2/hash_algos.h \
+    crypto/x16Rv2/lyra2.h \
+    crypto/x16Rv2/sph_blake.h \
+    crypto/x16Rv2/sph_bmw.h \
+    crypto/x16Rv2/sph_cubehash.h \
+    crypto/x16Rv2/sph_echo.h \
+    crypto/x16Rv2/sph_fugue.h \
+    crypto/x16Rv2/sph_groestl.h \
+    crypto/x16Rv2/sph_hamsi.h \
+    crypto/x16Rv2/sph_haval.h \
+    crypto/x16Rv2/sph_jh.h \
+    crypto/x16Rv2/sph_keccak.h \
+    crypto/x16Rv2/sph_luffa.h \
+    crypto/x16Rv2/sph_sha2.h \
+    crypto/x16Rv2/sph_shabal.h \
+    crypto/x16Rv2/sph_shavite.h \
+    crypto/x16Rv2/sph_simd.h \
+    crypto/x16Rv2/sph_skein.h \
+    crypto/x16Rv2/sph_tiger.h \
+    crypto/x16Rv2/sph_types.h \
+    crypto/x16Rv2/sph_whirlpool.h \
+    crypto/x16Rv2/sponge.h
 
 # Enable secp256k1 compilation on x86_64 only -- we don't actually use this lib
 # yet in Fulcrum, so on platforms that aren't x86_64 it's ok to exclude it; it

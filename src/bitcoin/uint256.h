@@ -12,6 +12,7 @@ static_assert(__cplusplus >= 202000L, "C++20 is required to compile this file");
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <cstring>
 
 [[maybe_unused]] inline constexpr int xxx_to_suppress_warning_2{}; // without this the below sometimes warns
 #ifdef __clang__
@@ -146,6 +147,22 @@ public:
      * a network adversary could provide values to trigger worst-case behavior.
      */
     uint64_t GetCheapHash() const noexcept { return ReadLE64(data()); }
+};
+
+/** 512-bit opaque blob used by certain algorithms (e.g. X16RV2).
+ *  Modeled after the type found in 5G-CASH sources.
+ */
+class uint512 : public base_blob<512> {
+public:
+    using base_blob<512>::base_blob; // inherit constructors
+
+    /// Convenience method to obtain the first 256 bits of this blob
+    /// as a uint256.
+    uint256 trim256() const noexcept {
+        uint256 ret{uint256::Uninitialized};
+        memcpy(ret.begin(), begin(), ret.size());
+        return ret;
+    }
 };
 
 /**

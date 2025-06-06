@@ -160,6 +160,10 @@ namespace BTC
     /// Identical to the above except it returns the REVERSED hash (which is what bitcoind gives you via JSON RPC or
     /// when doing uint256.ToString()). That is, this hash is in big-endian byte order.
     extern QByteArray HashRev(const QByteArray &, bool once = false);
+    /// Compute the hash for a serialized 80-byte block header. The returned data
+    /// is big-endian, suitable for comparison with RPC results. For VGC blocks,
+    /// this uses the X16RV2 algorithm; otherwise it uses double-SHA256.
+    QByteArray BlockHeaderHash(const QByteArray &header, Coin coin);
     /// sha256d of the concatenation of a and b. This is faster than but equivalent to doing: Hash(a + b, false).
     extern QByteArray HashTwo(const QByteArray &a, const QByteArray &b);
     /// Convenient alias for Hash(b, true)

@@ -23,6 +23,7 @@
 #include "bitcoin/crypto/endian.h"
 #include "bitcoin/crypto/sha256.h"
 #include "bitcoin/hash.h"
+#include "crypto/x16Rv2/hash_algos.h"
 
 #include <QMap>
 
@@ -90,6 +91,20 @@ namespace BTC
         h.Write(reinterpret_cast<const uint8_t *>(b.constData()), static_cast<size_t>(b.length()));
         h.Finalize(reinterpret_cast<uint8_t *>(ret.data()));
         return ret;
+    }
+
+    QByteArray BlockHeaderHash(const QByteArray &header, Coin coin)
+    {
+        if (coin == Coin::VGC) {
+            if (header.size() != GetBlockHeaderSize())
+                return {};
+            const auto hdr = Deserialize<bitcoin::CBlockHeader>(header);
+            const auto h = HashX16RV2(BEGIN(hdr.nVersion), END(hdr.nNonce), hdr.hashPrevBlock);
+            QByteArray ret(reinterpret_cast<const char *>(h.begin()), h.size());
+            std::reverse(ret.begin(), ret.end());
+            return ret;
+        }
+        return HashRev(header);
     }
 
     QByteArray Hash160(const QByteArray &b) {
