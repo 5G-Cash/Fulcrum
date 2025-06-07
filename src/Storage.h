@@ -139,6 +139,7 @@ public:
     /// Controller calls this the first time it connects to a bitcoind if the current coin is Coin::Unknown in order
     /// to save the Coin to the DB.
     void setCoin(const QString &); // implicitly calls db save of 'meta' (thread safe)
+    BTC::Coin coinType() const { return BTC::coinFromName(getCoin()); }
 
     /// Thread-safe. Returns a reversed hash (ready for hex encoding) of block 0's header.  Always succeeds if we have
     /// block 0, never throws. (If we have not seen block 0, returns an empty HeaderHash).

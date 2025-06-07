@@ -2251,11 +2251,14 @@ auto Storage::stats() const -> Stats
 // Keep returned LockGuard in scope while you use the HeaderVerifier
 auto Storage::headerVerifier() -> std::pair<BTC::HeaderVerifier &, ExclusiveLockGuard>
 {
-    return std::pair<BTC::HeaderVerifier &, ExclusiveLockGuard>( p->headerVerifier, p->headerVerifierLock );
+    ExclusiveLockGuard l(p->headerVerifierLock);
+    p->headerVerifier.setCoinType(coinType());
+    return { p->headerVerifier, std::move(l) };
 }
 auto Storage::headerVerifier() const -> std::pair<const BTC::HeaderVerifier &, SharedLockGuard>
 {
-    return std::pair<const BTC::HeaderVerifier &, SharedLockGuard>( p->headerVerifier, p->headerVerifierLock );
+    SharedLockGuard l(p->headerVerifierLock);
+    return { p->headerVerifier, std::move(l) };
 }
 
 
@@ -2337,7 +2340,7 @@ auto Storage::latestTip(Header *hdrOut) const -> std::pair<int, HeaderHash> {
         if (hdrOut) hdrOut->clear();
     } else {
         // .ret now has the actual header but we want the hash
-        ret.second = BTC::HashRev(ret.second);
+        ret.second = BTC::hashBlockForCoin(ret.second, coinType());
     }
     return ret;
 }
@@ -2484,7 +2487,7 @@ void Storage::loadCheckHeadersInDB()
 
             auto [verif, lock] = headerVerifier();
             // set genesis hash
-            p->genesisHash = BTC::HashRev(hVec.front());
+            p->genesisHash = BTC::hashBlockForCoin(hVec.front(), coinType());
 
             err.clear();
             // read db
@@ -2492,7 +2495,7 @@ void Storage::loadCheckHeadersInDB()
                 auto & bytes = hVec[i];
                 if (!verif(bytes, &err))
                     throw DatabaseFormatError(QString("%1. Possible databaase corruption. Delete the datadir and resynch.").arg(err));
-                bytes = BTC::Hash(bytes); // replace the header in the vector with its hash because it will be needed below...
+                bytes = BTC::hashBlockForCoin(bytes, coinType()); // replace the header in the vector with its hash because it will be needed below...
             }
         }
     }
@@ -3576,7 +3579,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
             // save the last of the undo info, if in saveUndo mode
             if (undo) {
                 const auto t0 = Util::getTimeNS();
-                undo->hash = BTC::HashRev(rawHeader);
+                undo->hash = BTC::hashBlockForCoin(rawHeader, coinType());
                 undo->scriptHashes = Util::keySet<decltype (undo->scriptHashes)>(ppb->hashXAggregated);
                 static const QString errPrefix("Error saving undo info to undo db");
 
@@ -3626,7 +3629,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
 
             if (UNLIKELY(ppb->height == 0)) {
                 // update genesis hash now if block 0 -- this info is used by rpc method server.features
-                p->genesisHash = BTC::HashRev(rawHeader); // this variable is guarded by p->headerVerifierLock
+                p->genesisHash = BTC::hashBlockForCoin(rawHeader, coinType()); // this variable is guarded by p->headerVerifierLock
             }
 
             if (size_t limit; p->db.utxoCache && (limit = options->utxoCache) && p->db.utxoCache->memUsage() > limit)
@@ -3754,7 +3757,7 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
         auto & undo = *undoOpt; // non-const because we swap out its scripthashes potentially below if notifySubs == true
 
         // ensure undo info sanity
-        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != BTC::HashRev(header)
+        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != BTC::hashBlockForCoin(header, coinType())
             || prevHeight+1 >= p->blkInfos.size() || p->blkInfos.empty() || p->blkInfos.back() != undo.blkInfo)
             throw DatabaseFormatError(QString("The undo information for height %1 was successfully retrieved from the "
                                               "database, but it failed an internal consistency check.").arg(tip));
@@ -3762,7 +3765,7 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
             // all sanity check passed. Now, undo things in reverse order of what we did in addBlock above, rougly speaking
 
             // first, undo the header
-            p->headerVerifier.reset(prevHeight+1, prevHeader);
+            p->headerVerifier.reset(prevHeight+1, prevHeader, coinType());
             setDirty(true); // <-- no turning back. we clear this flag at the end
             deleteHeadersPastHeight(prevHeight); // commit change to db
             p->merkleCache->truncate(prevHeight+1); // this takes a length, not a height, which is always +1 the height
@@ -4557,7 +4560,7 @@ auto Storage::getFirstUse(const HashX & hashX) const -> std::optional<FirstUse>
             const BlockHeight blockHeight = heightForTxNum(txNum).value(); // may throw
             return FirstUse(hashForTxNum(txNum).value(), /* .txHash */
                             blockHeight, /* .height */
-                            BTC::HashRev(headerForHeight(blockHeight).value()) /* .blockHash */);
+                            BTC::hashBlockForCoin(headerForHeight(blockHeight).value(), coinType()) /* .blockHash */);
         } else {
             // try unconfirmed (mempool)
             auto [mempool, lock] = this->mempool();
