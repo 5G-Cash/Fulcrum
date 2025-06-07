@@ -217,7 +217,7 @@ namespace BTC
         if (s == coinNameBCH) return Coin::BCH;
         if (s == coinNameBTC) return Coin::BTC;
         if (s == coinNameLTC) return Coin::LTC;
-    if (s == coinNameVGC) return Coin::VGC;
+        if (s == coinNameVGC) return Coin::VGC;
         return Coin::Unknown;
     }
 

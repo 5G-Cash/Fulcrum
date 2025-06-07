@@ -314,6 +314,7 @@ protected:
     bool isNonBCH() const { return coin != BTC::Coin::BCH; }
     bool isLTC() const { return coin == BTC::Coin::LTC; }
     bool isBTC() const { return coin == BTC::Coin::BTC; }
+    bool isVGC() const { return coin == BTC::Coin::VGC; }
 
 
     // --- Helpers used by Server* and AdminServer subclasses ---

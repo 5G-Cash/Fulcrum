@@ -30,7 +30,7 @@ GPLv3. See the included `LICENSE.txt` file or [visit gnu.org and read the licens
     - *For **BTC***: Bitcoin Core v0.17.0 or later.  No other full nodes are supported by this software for BTC.
     - *For **LTC***: Litecoin Core v0.17.0 or later.  No other full nodes are supported by this software for LTC.
       - If using Litecoin Core v0.21.2 or above, your daemon is serializing data using mweb extensions. While Fulcrum understands this serialization format, your Electrum-LTC clients may not. You can run `litecoind` with `-rpcserialversion=1` to have your daemon return transactions in pre-mweb format which is understood by most Electrum-LTC clients.
-    - *For **VGC***: A 5G-CASH node built with X16Rv2 support.
+    - *For **VGC***: A 5G-CASH node built with X16Rv2 support. Note that some nodes advertise themselves as `/Fitoshi:` in their subversion string; Fulcrum recognizes this alias automatically.
     - The node must have txindex enabled e.g. `txindex=1`.
     - The node must not be a pruning node.
     - *Optional*: For best results, enable zmq for the "hasblock" topic using e.g. `zmqpubhashblock=tcp://0.0.0.0:8433` in your `bitcoin.conf` file (zmq is only available on: Core, BCHN, BU 1.9.1+, or Litecoin Core).
@@ -247,6 +247,10 @@ Everything should just work (I use MacOS as my dev machine).
 
 This is the BTC-equivalent of the above BCH address, which is: **`1BCHBCH6TXBaXyc5HReLBm1sNytBF2kkPD`**
 [![1BCHBCH6TXBaXyc5HReLBm1sNytBF2kkPD](https://c3-soft.com/downloads/Bitcoin/imgs/btc_address_qrcode_1.png)](1BCHBCH6TXBaXyc5HReLBm1sNytBF2kkPD)
+
+### You may also send **VGC**:
+
+**`589Fd5X6aiSpddxV4wjhN2xnMywaLLSX9J`**
 
 ---
 

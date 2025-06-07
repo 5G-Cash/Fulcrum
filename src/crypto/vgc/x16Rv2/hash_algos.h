@@ -8,6 +8,7 @@
 
 
 #include "../../bitcoin/uint256.h"
+#include "../../bitcoin/uint512.h"
 #include "sph_blake.h"
 #include "sph_bmw.h"
 #include "sph_groestl.h"

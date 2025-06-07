@@ -568,6 +568,7 @@ HEADERS += \
     bitcoin/transaction.h \
     bitcoin/txid.h \
     bitcoin/uint256.h \
+    bitcoin/uint512.h \
     bitcoin/utilstrencodings.h \
     bitcoin/utilstring.h \
     bitcoin/utilvector.h \

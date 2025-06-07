@@ -228,7 +228,7 @@ namespace {
             isBCHN = subversion.startsWith("/Bitcoin Cash Node:");
             isLTC = subversion.startsWith("/LitecoinCore:");
             isFlowee = subversion.startsWith("/Flowee:");
-            isVGC = subversion.contains("5G-Cash") || subversion.contains("FivegX");
+            isVGC = subversion.contains("5G-Cash") || subversion.contains("FivegX") || subversion.startsWith("/Fitoshi:") || subversion.contains("Fitoshi");
             // regular bitcoind, "version" is reliable and always the same format
             version = Version::BitcoinDCompact(val);
         }
