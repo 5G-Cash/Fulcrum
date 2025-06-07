@@ -371,6 +371,36 @@ SOURCES += \
     WebSocket.cpp \
     ZmqSubNotifier.cpp \
     register_MetaTypes.cpp \
+    x16rv2/Lyra2RE.c \
+    x16rv2/aes_helper.c \
+    x16rv2/blake.c \
+    x16rv2/bmw.c \
+    x16rv2/cubehash.c \
+    x16rv2/echo.c \
+    x16rv2/extra.c \
+    x16rv2/fugue.c \
+    x16rv2/gost_streebog.c \
+    x16rv2/groestl.c \
+    x16rv2/hamsi.c \
+    x16rv2/hamsi_helper.c \
+    x16rv2/haval.c \
+    x16rv2/haval_helper.c \
+    x16rv2/jh.c \
+    x16rv2/keccak.c \
+    x16rv2/luffa.c \
+    x16rv2/lyra2.cpp \
+    x16rv2/md_helper.c \
+    x16rv2/sha2.c \
+    x16rv2/shabal.c \
+    x16rv2/shavite.c \
+    x16rv2/simd.c \
+    x16rv2/skein.c \
+    x16rv2/sph_md_helper.c \
+    x16rv2/sph_sha2.c \
+    x16rv2/sph_sha2big.c \
+    x16rv2/sponge.cpp \
+    x16rv2/tiger.cpp \
+    x16rv2/whirlpool.c \
 
 HEADERS += \
     AbstractConnection.h \
@@ -379,6 +409,31 @@ HEADERS += \
     BTC_Address.h \
     BitcoinD.h \
     BitcoinD_RPCInfo.h \
+    x16rv2/Lyra2RE.h \
+    x16rv2/extra.h \
+    x16rv2/gost_streebog.h \
+    x16rv2/hash_algos.h \
+    x16rv2/lyra2.h \
+    x16rv2/sph_blake.h \
+    x16rv2/sph_bmw.h \
+    x16rv2/sph_cubehash.h \
+    x16rv2/sph_echo.h \
+    x16rv2/sph_fugue.h \
+    x16rv2/sph_groestl.h \
+    x16rv2/sph_hamsi.h \
+    x16rv2/sph_haval.h \
+    x16rv2/sph_jh.h \
+    x16rv2/sph_keccak.h \
+    x16rv2/sph_luffa.h \
+    x16rv2/sph_sha2.h \
+    x16rv2/sph_shabal.h \
+    x16rv2/sph_shavite.h \
+    x16rv2/sph_simd.h \
+    x16rv2/sph_skein.h \
+    x16rv2/sph_tiger.h \
+    x16rv2/sph_types.h \
+    x16rv2/sph_whirlpool.h \
+    x16rv2/sponge.h \
     BlockProc.h \
     BlockProcTypes.h \
     ByteView.h \
@@ -434,7 +489,8 @@ contains(DEFINES, ENABLE_TESTS) {
     HEADERS += \
         src/tests/Tests.h
     SOURCES += \
-        src/tests/ByteView_tests.cpp
+        src/tests/ByteView_tests.cpp \
+        src/tests/x16rv2_tests.cpp
 }
 
 # Bitcoin related sources & headers

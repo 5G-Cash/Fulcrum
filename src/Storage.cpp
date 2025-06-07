@@ -2483,8 +2483,11 @@ void Storage::loadCheckHeadersInDB()
                 throw DatabaseFormatError(QString("%1. Possible databaase corruption. Delete the datadir and resynch.").arg(err.isEmpty() ? "Could not read all headers" : err));
 
             auto [verif, lock] = headerVerifier();
+            const auto coin = BTC::coinFromName(getCoin());
+            verif.reset(0, QByteArray(), coin);
             // set genesis hash
-            p->genesisHash = BTC::HashRev(hVec.front());
+            p->genesisHash = BTC::hashBlockForCoin(hVec.front(), coin);
+            std::reverse(p->genesisHash.begin(), p->genesisHash.end());
 
             err.clear();
             // read db
@@ -2492,7 +2495,7 @@ void Storage::loadCheckHeadersInDB()
                 auto & bytes = hVec[i];
                 if (!verif(bytes, &err))
                     throw DatabaseFormatError(QString("%1. Possible databaase corruption. Delete the datadir and resynch.").arg(err));
-                bytes = BTC::Hash(bytes); // replace the header in the vector with its hash because it will be needed below...
+                bytes = BTC::hashBlockForCoin(bytes, coin); // store hash for later
             }
         }
     }
@@ -3576,7 +3579,8 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
             // save the last of the undo info, if in saveUndo mode
             if (undo) {
                 const auto t0 = Util::getTimeNS();
-                undo->hash = BTC::HashRev(rawHeader);
+                undo->hash = BTC::hashBlockForCoin(rawHeader, BTC::coinFromName(getCoin()));
+                std::reverse(undo->hash.begin(), undo->hash.end());
                 undo->scriptHashes = Util::keySet<decltype (undo->scriptHashes)>(ppb->hashXAggregated);
                 static const QString errPrefix("Error saving undo info to undo db");
 
@@ -3626,7 +3630,8 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
 
             if (UNLIKELY(ppb->height == 0)) {
                 // update genesis hash now if block 0 -- this info is used by rpc method server.features
-                p->genesisHash = BTC::HashRev(rawHeader); // this variable is guarded by p->headerVerifierLock
+                p->genesisHash = BTC::hashBlockForCoin(rawHeader, BTC::coinFromName(getCoin()));
+                std::reverse(p->genesisHash.begin(), p->genesisHash.end()); // stored big-endian
             }
 
             if (size_t limit; p->db.utxoCache && (limit = options->utxoCache) && p->db.utxoCache->memUsage() > limit)
@@ -3754,7 +3759,12 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
         auto & undo = *undoOpt; // non-const because we swap out its scripthashes potentially below if notifySubs == true
 
         // ensure undo info sanity
-        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != BTC::HashRev(header)
+        const auto curHashReversed = [&]{
+            auto h = BTC::hashBlockForCoin(header, BTC::coinFromName(getCoin()));
+            std::reverse(h.begin(), h.end());
+            return h;
+        }();
+        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != curHashReversed
             || prevHeight+1 >= p->blkInfos.size() || p->blkInfos.empty() || p->blkInfos.back() != undo.blkInfo)
             throw DatabaseFormatError(QString("The undo information for height %1 was successfully retrieved from the "
                                               "database, but it failed an internal consistency check.").arg(tip));
@@ -4557,7 +4567,12 @@ auto Storage::getFirstUse(const HashX & hashX) const -> std::optional<FirstUse>
             const BlockHeight blockHeight = heightForTxNum(txNum).value(); // may throw
             return FirstUse(hashForTxNum(txNum).value(), /* .txHash */
                             blockHeight, /* .height */
-                            BTC::HashRev(headerForHeight(blockHeight).value()) /* .blockHash */);
+                            [&]{
+                                auto h = BTC::hashBlockForCoin(headerForHeight(blockHeight).value(),
+                                                               BTC::coinFromName(getCoin()));
+                                std::reverse(h.begin(), h.end());
+                                return h;
+                            }() /* .blockHash */);
         } else {
             // try unconfirmed (mempool)
             auto [mempool, lock] = this->mempool();
@@ -4582,8 +4597,9 @@ auto Storage::getFirstUse(const HashX & hashX) const -> std::optional<FirstUse>
 std::vector<QByteArray> Storage::merkleCacheHelperFunc(unsigned int start, unsigned int count, QString *err)
 {
     auto vec = headersFromHeight_nolock_nocheck(start, count, err); // despite the name of this function, it does take a small lock internally and is thread-safe. we cannot use the public one as that would potentially cause a deadlock here
+    const auto coin = BTC::coinFromName(getCoin());
     for (auto & ba : vec)
-        ba = BTC::Hash(ba);
+        ba = BTC::hashBlockForCoin(ba, coin);
     return vec;
 }
 
