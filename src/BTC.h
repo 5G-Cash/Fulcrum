@@ -45,7 +45,7 @@
 namespace BTC
 {
     /// Used by the Storage and Controller subsystem to figure out what coin we are on (BCH vs BTC vs LTC)
-    enum class Coin { Unknown = 0, BCH, BTC, LTC, VGC };
+    enum class Coin { Unknown = 0, BCH, BTC, LTC };
 
     QString coinToName(Coin);
     Coin coinFromName(const QString &);
@@ -166,9 +166,6 @@ namespace BTC
     inline QByteArray HashOnce(const QByteArray &b) { return Hash(b, true); }
     /// Like the Hash() function above, except does hash160 once. (not reversed).
     extern QByteArray Hash160(const QByteArray &);
-    /// Compute a block hash according to coin-specific rules.
-    /// Returned hash is in internal (little-endian) byte order.
-    QByteArray hashBlockForCoin(const QByteArray &header, BTC::Coin coin);
     /// Hash any Bitcoin object in-place and return the hash. If `once` == true, we do single-sha256 hashing. If
     /// `reversed` == true, we reverse the result (making it big-endian ready for JSON).
     template <typename BitcoinObject>
@@ -206,13 +203,11 @@ namespace BTC
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
         long prevHeight = -1;
-        Coin coin = Coin::Unknown;
 
         bool checkInner(long height, const bitcoin::CBlockHeader &, QString *err);
     public:
-        HeaderVerifier(Coin c = Coin::Unknown) : coin(c) {}
-        HeaderVerifier(unsigned fromHeight, Coin c = Coin::Unknown)
-            : prevHeight(long(fromHeight)-1), coin(c) {}
+        HeaderVerifier() = default;
+        HeaderVerifier(unsigned fromHeight) : prevHeight(long(fromHeight)-1) {}
 
         /// keep calling this from a loop. Returns false if current header's hashPrevBlock  != the last header's hash.
         bool operator()(const QByteArray & header, QString *err = nullptr);
@@ -221,10 +216,7 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
-        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), Coin c = Coin::Unknown) {
-            prevHeight = long(nextHeight)-1; prev = prevHeader; coin = c;
-        }
-        Coin coinType() const { return coin; }
+        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray()) { prevHeight = long(nextHeight)-1; prev = prevHeader; }
     };
 
     /// Trivial hasher for sha256, rmd160, etc hashed byte arrays (for use with std::unordered_map,

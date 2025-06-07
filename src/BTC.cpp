@@ -23,7 +23,6 @@
 #include "bitcoin/crypto/endian.h"
 #include "bitcoin/crypto/sha256.h"
 #include "bitcoin/hash.h"
-#include "x16rv2/hash_algos.h"
 
 #include <QMap>
 
@@ -101,20 +100,6 @@ namespace BTC
         return ret;
     }
 
-    QByteArray hashBlockForCoin(const QByteArray &header, BTC::Coin coin)
-    {
-        if (coin == Coin::VGC) {
-            if (header.size() != GetBlockHeaderSize()) return QByteArray{};
-            bitcoin::uint256 prev{bitcoin::uint256::Uninitialized};
-            std::memcpy(prev.begin(), header.constData() + 4, bitcoin::uint256::width());
-            const bitcoin::uint256 h = HashX16RV2(reinterpret_cast<const uint8_t *>(header.constData()),
-                                                 reinterpret_cast<const uint8_t *>(header.constData()) + header.size(),
-                                                 prev);
-            return QByteArray(reinterpret_cast<const char *>(h.begin()), h.width());
-        }
-        return Hash(header);
-    }
-
     // HeaderVerifier helper
     bool HeaderVerifier::operator()(const QByteArray & header, QString *err)
     {
@@ -153,8 +138,7 @@ namespace BTC
             if (err) *err = QString("Header verification failed for header at height %1: failed to deserialize").arg(height);
             return false;
         }
-        if (!prev.isEmpty() &&
-            hashBlockForCoin(prev, coin) != QByteArray::fromRawData(reinterpret_cast<const char *>(curHdr.hashPrevBlock.begin()), int(curHdr.hashPrevBlock.width())) ) {
+        if (!prev.isEmpty() && Hash(prev) != QByteArray::fromRawData(reinterpret_cast<const char *>(curHdr.hashPrevBlock.begin()), int(curHdr.hashPrevBlock.width())) ) {
             if (err) *err = QString("Header %1 'hashPrevBlock' does not match the contents of the previous block").arg(height);
             return false;
         }
@@ -204,14 +188,13 @@ namespace BTC
         return nameNetMap.value(name, Net::Invalid /* default if not found */);
     }
 
-    namespace { const QString coinNameBCH{"BCH"}, coinNameBTC{"BTC"}, coinNameLTC{"LTC"}, coinNameVGC{"VGC"}; }
+    namespace { const QString coinNameBCH{"BCH"}, coinNameBTC{"BTC"}, coinNameLTC{"LTC"}; }
     QString coinToName(Coin c) {
         QString ret; // for NRVO
         switch (c) {
         case Coin::BCH: ret = coinNameBCH; break;
         case Coin::BTC: ret = coinNameBTC; break;
         case Coin::LTC: ret = coinNameLTC; break;
-        case Coin::VGC: ret = coinNameVGC; break;
         case Coin::Unknown: break;
         }
         return ret;
@@ -220,7 +203,6 @@ namespace BTC
         if (s == coinNameBCH) return Coin::BCH;
         if (s == coinNameBTC) return Coin::BTC;
         if (s == coinNameLTC) return Coin::LTC;
-        if (s == coinNameVGC) return Coin::VGC;
         return Coin::Unknown;
     }
 
