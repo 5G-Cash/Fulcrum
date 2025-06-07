@@ -63,7 +63,7 @@ namespace BTC
 
     /// Serialize to a passed-in buffer. from_pos should be the position in the buffer to overwrite the serialized data
     /// into.  Note if from_pos is larger than the buffer, the buffer will be grown to encompass from_pos!
-    /// In any case, the buffer will always be grown to accomodate the data if it's not big enough to hold it.
+    /// In any case, the buffer will always be grown to accommodate the data if it's not big enough to hold it.
     /// Specify from_pos=-1 for appending at the end.  Returns a reference to the passed-in buffer.  This is very fast
     /// and done in-place.
     template <typename BitcoinObject>
@@ -102,7 +102,7 @@ namespace BTC
         bitcoin::GenericVectorReader<QByteArray> vr(bitcoin::SER_NETWORK, version, bytes, pos);
         thing.Unserialize(vr);
         if (throwIfJunkAtEnd && !vr.empty())
-            throw std::ios_base::failure(strprintf("Got %u unprocessed bytes at the end when deserializeing a bitcoin object",
+            throw std::ios_base::failure(strprintf("Got %u unprocessed bytes at the end when deserializing a bitcoin object",
                                                    vr.size()));
     }
     /// Convenience for above.  Create an instance of object and deserialize to it
@@ -151,6 +151,10 @@ namespace BTC
 
     /// Helper -- returns the size of a block header. Should always be 80. Update this if that changes.
     constexpr int GetBlockHeaderSize() noexcept { return 80; }
+
+    /// Return the block header hash for the given coin. For VGC this uses
+    /// the X16Rv2 algorithm, otherwise it returns the standard double SHA256.
+    bitcoin::uint256 GetBlockHash(const bitcoin::CBlockHeader &hdr, Coin coin);
 
     /// Returns the sha256 double hash (not reveresed -- little endian) of the input QByteArray. The results are copied
     /// once from the hasher into the returned QByteArray.  This is faster than obtaining a uint256 from bitcoin::Hash
@@ -203,11 +207,14 @@ namespace BTC
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
         long prevHeight = -1;
+        Coin coin_ = Coin::BCH;
 
         bool checkInner(long height, const bitcoin::CBlockHeader &, QString *err);
     public:
         HeaderVerifier() = default;
-        HeaderVerifier(unsigned fromHeight) : prevHeight(long(fromHeight)-1) {}
+        explicit HeaderVerifier(unsigned fromHeight, Coin c = Coin::BCH)
+            : prevHeight(long(fromHeight)-1), coin_(c) {}
+        void setCoin(Coin c) { coin_ = c; }
 
         /// keep calling this from a loop. Returns false if current header's hashPrevBlock  != the last header's hash.
         bool operator()(const QByteArray & header, QString *err = nullptr);
@@ -216,7 +223,12 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
-        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray()) { prevHeight = long(nextHeight)-1; prev = prevHeader; }
+        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), Coin c = Coin::BCH)
+        {
+            prevHeight = long(nextHeight)-1;
+            prev = prevHeader;
+            coin_ = c;
+        }
     };
 
     /// Trivial hasher for sha256, rmd160, etc hashed byte arrays (for use with std::unordered_map,

@@ -372,6 +372,38 @@ SOURCES += \
     ZmqSubNotifier.cpp \
     register_MetaTypes.cpp
 
+    crypto/vgc/HashX16RV2.cpp \
+    crypto/vgc/x16Rv2/Lyra2RE.c \
+    crypto/vgc/x16Rv2/aes_helper.c \
+    crypto/vgc/x16Rv2/blake.c \
+    crypto/vgc/x16Rv2/bmw.c \
+    crypto/vgc/x16Rv2/cubehash.c \
+    crypto/vgc/x16Rv2/echo.c \
+    crypto/vgc/x16Rv2/extra.c \
+    crypto/vgc/x16Rv2/fugue.c \
+    crypto/vgc/x16Rv2/gost_streebog.c \
+    crypto/vgc/x16Rv2/groestl.c \
+    crypto/vgc/x16Rv2/hamsi.c \
+    crypto/vgc/x16Rv2/hamsi_helper.c \
+    crypto/vgc/x16Rv2/haval.c \
+    crypto/vgc/x16Rv2/haval_helper.c \
+    crypto/vgc/x16Rv2/jh.c \
+    crypto/vgc/x16Rv2/keccak.c \
+    crypto/vgc/x16Rv2/luffa.c \
+    crypto/vgc/x16Rv2/lyra2.cpp \
+    crypto/vgc/x16Rv2/md_helper.c \
+    crypto/vgc/x16Rv2/sha2.c \
+    crypto/vgc/x16Rv2/shabal.c \
+    crypto/vgc/x16Rv2/shavite.c \
+    crypto/vgc/x16Rv2/simd.c \
+    crypto/vgc/x16Rv2/skein.c \
+    crypto/vgc/x16Rv2/sph_md_helper.c \
+    crypto/vgc/x16Rv2/sph_sha2.c \
+    crypto/vgc/x16Rv2/sph_sha2big.c \
+    crypto/vgc/x16Rv2/sponge.cpp \
+    crypto/vgc/x16Rv2/tiger.cpp \
+    crypto/vgc/x16Rv2/whirlpool.c
+
 HEADERS += \
     AbstractConnection.h \
     App.h \
@@ -421,9 +453,35 @@ HEADERS += \
     VarInt.h \
     Version.h \
     WebSocket.h \
-    ZmqSubNotifier.h
+    ZmqSubNotifier.h \
+    crypto/vgc/HashX16RV2.h \
+    crypto/vgc/x16Rv2/Lyra2RE.h \
+    crypto/vgc/x16Rv2/extra.h \
+    crypto/vgc/x16Rv2/gost_streebog.h \
+    crypto/vgc/x16Rv2/hash_algos.h \
+    crypto/vgc/x16Rv2/lyra2.h \
+    crypto/vgc/x16Rv2/sph_blake.h \
+    crypto/vgc/x16Rv2/sph_bmw.h \
+    crypto/vgc/x16Rv2/sph_cubehash.h \
+    crypto/vgc/x16Rv2/sph_echo.h \
+    crypto/vgc/x16Rv2/sph_fugue.h \
+    crypto/vgc/x16Rv2/sph_groestl.h \
+    crypto/vgc/x16Rv2/sph_hamsi.h \
+    crypto/vgc/x16Rv2/sph_haval.h \
+    crypto/vgc/x16Rv2/sph_jh.h \
+    crypto/vgc/x16Rv2/sph_keccak.h \
+    crypto/vgc/x16Rv2/sph_luffa.h \
+    crypto/vgc/x16Rv2/sph_sha2.h \
+    crypto/vgc/x16Rv2/sph_shabal.h \
+    crypto/vgc/x16Rv2/sph_shavite.h \
+    crypto/vgc/x16Rv2/sph_simd.h \
+    crypto/vgc/x16Rv2/sph_skein.h \
+    crypto/vgc/x16Rv2/sph_tiger.h \
+    crypto/vgc/x16Rv2/sph_types.h \
+    crypto/vgc/x16Rv2/sph_whirlpool.h \
+    crypto/vgc/x16Rv2/sponge.h
 
-# Robin Hood unordered_flat_map implememntation (single header and MUCH more efficient than unordered_map!)
+# Robin Hood unordered_flat_map implementation (single header and MUCH more efficient than unordered_map!)
 HEADERS += robin_hood/robin_hood.h
 
 RESOURCES += \
@@ -435,6 +493,7 @@ contains(DEFINES, ENABLE_TESTS) {
         src/tests/Tests.h
     SOURCES += \
         src/tests/ByteView_tests.cpp
+        test/x16rv2_test.cpp
 }
 
 # Bitcoin related sources & headers
@@ -509,6 +568,7 @@ HEADERS += \
     bitcoin/transaction.h \
     bitcoin/txid.h \
     bitcoin/uint256.h \
+    bitcoin/uint512.h \
     bitcoin/utilstrencodings.h \
     bitcoin/utilstring.h \
     bitcoin/utilvector.h \

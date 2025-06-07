@@ -286,13 +286,25 @@ namespace BTC
         return ret;
     }
 
-    QString Address::toLitecoinString() const
+QString Address::toLitecoinString() const
     {
         std::optional<Byte> verByteOverride;
         if (_net == Net::MainNet && _kind == Kind::P2PKH)
-            verByteOverride = Byte{48}; // p2psh on mainnet is the only one that differs for litecoin
+            verByteOverride = Byte{48}; // p2pkh on mainnet is the only one that differs for litecoin
         return toString(true, verByteOverride);
+}
+
+QString Address::to5GCashString() const
+{
+    std::optional<Byte> verByteOverride;
+    if (_kind == Kind::P2PKH) {
+        if (_net == Net::MainNet)
+            verByteOverride = Byte{10};
+        else
+            verByteOverride = Byte{65};
     }
+    return toString(true, verByteOverride);
+}
 
 
     QString Address::toShortString() const

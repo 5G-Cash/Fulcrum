@@ -221,7 +221,7 @@ auto Mempool::addNewTxs(ScriptHashesAffectedSet & scriptHashesAffected,
                 // hack to save memory by re-using existing sh QByteArray and/or forcing a shallow-copy
                 auto hxit = tx->hashXs.find(sh);
                 if (hxit != tx->hashXs.end()) {
-                    // existing found, re-use same unerlying QByteArray memory for sh
+                    // existing found, re-use same underlying QByteArray memory for sh
                     sh = optTXOInfo->hashX = hxit->first;
                 } else {
                     // new entry, insert, update hxit

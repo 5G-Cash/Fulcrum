@@ -23,6 +23,7 @@
 #include "bitcoin/crypto/endian.h"
 #include "bitcoin/crypto/sha256.h"
 #include "bitcoin/hash.h"
+#include "crypto/vgc/HashX16RV2.h"
 
 #include <QMap>
 
@@ -100,6 +101,15 @@ namespace BTC
         return ret;
     }
 
+    bitcoin::uint256 GetBlockHash(const bitcoin::CBlockHeader &hdr, Coin coin)
+    {
+        if (coin == Coin::VGC)
+            return ::HashX16RV2<const uint8_t*>(reinterpret_cast<const uint8_t*>(&hdr.nVersion),
+                                               reinterpret_cast<const uint8_t*>(&hdr.nNonce) + sizeof(hdr.nNonce),
+                                               hdr.hashPrevBlock);
+        return bitcoin::SerializeHash(hdr);
+    }
+
     // HeaderVerifier helper
     bool HeaderVerifier::operator()(const QByteArray & header, QString *err)
     {
@@ -138,9 +148,12 @@ namespace BTC
             if (err) *err = QString("Header verification failed for header at height %1: failed to deserialize").arg(height);
             return false;
         }
-        if (!prev.isEmpty() && Hash(prev) != QByteArray::fromRawData(reinterpret_cast<const char *>(curHdr.hashPrevBlock.begin()), int(curHdr.hashPrevBlock.width())) ) {
-            if (err) *err = QString("Header %1 'hashPrevBlock' does not match the contents of the previous block").arg(height);
-            return false;
+        if (!prev.isEmpty()) {
+            bitcoin::CBlockHeader prevHdr = Deserialize<bitcoin::CBlockHeader>(prev);
+            if (BTC::GetBlockHash(prevHdr, coin_) != curHdr.hashPrevBlock) {
+                if (err) *err = QString("Header %1 'hashPrevBlock' does not match the contents of the previous block").arg(height);
+                return false;
+            }
         }
         return true;
     }
@@ -204,7 +217,7 @@ namespace BTC
         if (s == coinNameBCH) return Coin::BCH;
         if (s == coinNameBTC) return Coin::BTC;
         if (s == coinNameLTC) return Coin::LTC;
-    if (s == coinNameVGC) return Coin::VGC;
+        if (s == coinNameVGC) return Coin::VGC;
         return Coin::Unknown;
     }
 
