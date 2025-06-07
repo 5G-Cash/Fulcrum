@@ -58,9 +58,10 @@ Compiling is for those users that do not wish to use the [pre-built static binar
 
 You may also build from the CLI (on Linux and MacOS):
 
-1. Make sure you have `qmake` in your path and all the requisite Qt5 dev libs installed.
+1. Install the required development packages. On Debian/Ubuntu you can run
+   `contrib/install-deps.sh` (as root) to install everything needed.
 2. `qmake` (to generate the Makefile)
-3. `make -j8`  (replace 8 here with the number of cores on your machine)
+3. `make -j8`  (replace `8` with the number of cores on your machine)
 
 **A note for Linux users**: You may have to install the Qt5 networking package separately such as `libqt5network5` (depending on your distribution). You also need `libbz2-dev` otherwise compilation will fail. If you are having trouble finding the required Qt versions, you can try this link: https://launchpad.net/~beineri (for Ubuntu/Debian ppas). For best results, you may wish to also ensure you have the following installed: `pkg-config`, `libzmq` (aka `libzmq3-dev` on Debian/Ubuntu, `zeromq-devel` on Fedora), and `libminiupnpc` (aka `libminiupnpc-dev` on Debian/Ubuntu, `miniupnpc-devel` on Fedora).
 
