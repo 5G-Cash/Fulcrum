@@ -370,7 +370,7 @@ SOURCES += \
     Version.cpp \
     WebSocket.cpp \
     ZmqSubNotifier.cpp \
-    register_MetaTypes.cpp
+    register_MetaTypes.cpp \
 
 HEADERS += \
     AbstractConnection.h \
