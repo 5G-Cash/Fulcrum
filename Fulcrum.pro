@@ -370,7 +370,7 @@ SOURCES += \
     Version.cpp \
     WebSocket.cpp \
     ZmqSubNotifier.cpp \
-    register_MetaTypes.cpp
+    register_MetaTypes.cpp \
     x16rv2/Lyra2RE.c \
     x16rv2/aes_helper.c \
     x16rv2/blake.c \
