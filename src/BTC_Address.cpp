@@ -292,7 +292,7 @@ QString Address::toLitecoinString() const
         if (_net == Net::MainNet && _kind == Kind::P2PKH)
             verByteOverride = Byte{48}; // p2pkh on mainnet is the only one that differs for Litecoin
         return toString(true, verByteOverride);
-}
+  }
 
 QString Address::to5GCashString() const
 {
