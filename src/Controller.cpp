@@ -496,7 +496,7 @@ struct DownloadBlocksTask : CtlTask
     int q_ct = 0;
     const int max_q; // todo: tune this, for now it is numBitcoinDClients + 1
 
-    const int HEADER_SIZE = BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(ctl->coinType());
+    const int HEADER_SIZE = BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(ctl->getCoinType());
 
     std::atomic<size_t> nTx = 0, nIns = 0, nOuts = 0;
 
