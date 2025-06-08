@@ -220,8 +220,12 @@ namespace BTC
     /// If that is ever not the case, operator() returns false. Returns true otherwise.
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
+
         /// previous block hash in little-endian order (matches CBlockHeader::hashPrevBlock)
-        QByteArray prevHash;
+        QByteArray prevHash;  ///< the hash of the previous header, BlockHashForCoin() form
+
+        
+
         long prevHeight = -1;
         Coin coinType{Coin::Unknown};
 
@@ -240,7 +244,10 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
+
         /// Reinitialize verifier state. prevHashIn should be the previous block hash in big-endian form.
+
+
         void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), QByteArray prevHashIn = QByteArray())
         {
             prevHeight = long(nextHeight)-1;

@@ -2298,6 +2298,7 @@ void Storage::setCoin(const QString &coin) {
         auto [verif, lock] = headerVerifier();
         verif.setCoin(BTC::coinFromName(coin));
     }
+
     p->coin = BTC::coinFromName(coin);
     if (p->headersFile) {
         QString err;
@@ -2305,6 +2306,7 @@ void Storage::setCoin(const QString &coin) {
         p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers",
                                                      size_t(p->blockHeaderSize()), 0x00f026a1);
     }
+
 }
 
 bool Storage::isRpaEnabled() const
