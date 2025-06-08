@@ -88,6 +88,7 @@ public:
     }
 
     /// Thread-safe, lock-free, returns the current coin type
+
     BTC::Coin getCoinType() const { return coinType.load(std::memory_order_relaxed); }
 
     /// Type used internally by the putRpaIndex signal
