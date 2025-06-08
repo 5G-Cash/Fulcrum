@@ -31,6 +31,7 @@
 #include <QHash>
 #include <QMetaType>
 #include <QString>
+#include "crypto/x16rv2/X16RV2.h"
 
 #include <algorithm>
 #include <cstddef> // for std::byte, etc
@@ -166,6 +167,11 @@ namespace BTC
     inline QByteArray HashOnce(const QByteArray &b) { return Hash(b, true); }
     /// Like the Hash() function above, except does hash160 once. (not reversed).
     extern QByteArray Hash160(const QByteArray &);
+    /// Returns the block hash for a coin. For VGC uses x16rv2; otherwise sha256d.
+    inline QByteArray BlockHashForCoin(const QByteArray &header, const QByteArray &prevHash, Coin coin)
+    {
+        return coin == Coin::VGC ? X16RV2::HashX16RV2(header, prevHash) : HashRev(header);
+    }
     /// Hash any Bitcoin object in-place and return the hash. If `once` == true, we do single-sha256 hashing. If
     /// `reversed` == true, we reverse the result (making it big-endian ready for JSON).
     template <typename BitcoinObject>

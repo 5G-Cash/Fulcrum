@@ -576,7 +576,11 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
                     auto rawblock = Util::ParseHexFast(resp.result().toByteArray());
                     const auto header = rawblock.left(HEADER_SIZE); // we need a deep copy of this anyway so might as well take it now.
                     QByteArray chkHash;
-                    if (bool sizeOk = header.length() == HEADER_SIZE; sizeOk && (chkHash = BTC::HashRev(header)) == hash) {
+                    const auto prevBytes = header.mid(4, 32);
+                    QByteArray prevHash(prevBytes);
+                    std::reverse(prevHash.begin(), prevHash.end());
+                    if (bool sizeOk = header.length() == HEADER_SIZE;
+                        sizeOk && (chkHash = BTC::BlockHashForCoin(header, prevHash, ctl->isVGCCoin() ? BTC::Coin::VGC : BTC::Coin::Unknown)) == hash) {
                         PreProcessedBlockPtr maybe_ppb; // either this is filled
                         Controller::RpaOnlyModeDataPtr maybe_rpaOnlyMode;  // or this is.. but not both!
                         try {
