@@ -879,9 +879,9 @@ struct CScriptWitness
     std::vector<std::vector<unsigned char> > stack;
 
     // Some compilers complain without a default constructor
-    constexpr CScriptWitness() noexcept = default;
+    CScriptWitness() noexcept = default;
 
-    constexpr bool IsNull() const noexcept { return stack.empty(); }
+    bool IsNull() const noexcept { return stack.empty(); }
 
     void SetNull() { stack.clear(); stack.shrink_to_fit(); }
 

@@ -111,7 +111,7 @@ public:
 struct CBlockLocator {
     std::vector<uint256> vHave;
 
-    constexpr CBlockLocator() noexcept {}
+    CBlockLocator() noexcept {}
 
     explicit CBlockLocator(const std::vector<uint256> &vHaveIn)
         : vHave(vHaveIn) {}

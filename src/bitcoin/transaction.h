@@ -121,7 +121,7 @@ public:
      */
     static constexpr int SEQUENCE_LOCKTIME_GRANULARITY = 9;
 
-    constexpr CTxIn() noexcept : nSequence{SEQUENCE_FINAL} {}
+    CTxIn() noexcept : nSequence{SEQUENCE_FINAL} {}
 
     explicit CTxIn(const COutPoint &prevoutIn, const CScript &scriptSigIn = {}, uint32_t nSequenceIn = SEQUENCE_FINAL)
         : prevout{prevoutIn}, scriptSig{scriptSigIn}, nSequence{nSequenceIn} {}
