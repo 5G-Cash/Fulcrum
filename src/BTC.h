@@ -152,6 +152,18 @@ namespace BTC
 
     /// Helper -- returns the size of a block header. Should always be 80. Update this if that changes.
     constexpr int GetBlockHeaderSize() noexcept { return 80; }
+    /// Returns any extra bytes found at the end of a block header for a coin.
+    /// BCH/BTC/LTC headers have no extra bytes, but other coins may extend the
+    /// header with additional data.  The return value is the number of extra
+    /// bytes that come after the standard 80-byte header.
+    constexpr int extraHeaderSizeForCoin(Coin coin) noexcept
+    {
+        switch (coin) {
+        case Coin::VGC: return 4; // VGC headers include 4 additional bytes
+        default: break;
+        }
+        return 0;
+    }
 
     /// Returns the sha256 double hash (not reveresed -- little endian) of the input QByteArray. The results are copied
     /// once from the hasher into the returned QByteArray.  This is faster than obtaining a uint256 from bitcoin::Hash
@@ -208,7 +220,12 @@ namespace BTC
     /// If that is ever not the case, operator() returns false. Returns true otherwise.
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
-        QByteArray prevHash; ///< the hash of the previous header, BlockHashForCoin() form
+
+        /// previous block hash in little-endian order (matches CBlockHeader::hashPrevBlock)
+        QByteArray prevHash;  ///< the hash of the previous header, BlockHashForCoin() form
+
+        
+
         long prevHeight = -1;
         Coin coinType{Coin::Unknown};
 
@@ -227,6 +244,10 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
+
+        /// Reinitialize verifier state. prevHashIn should be the previous block hash in big-endian form.
+
+
         void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), QByteArray prevHashIn = QByteArray())
         {
             prevHeight = long(nextHeight)-1;

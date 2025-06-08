@@ -1069,11 +1069,12 @@ struct Storage::Pvt
 
     Pvt(const Pvt &) = delete;
 
-    constexpr int blockHeaderSize() { return BTC::GetBlockHeaderSize(); }
+    constexpr int blockHeaderSize() { return BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(coin); }
 
     /* NOTE: If taking multiple locks, all locks should be taken in the order they are declared, to avoid deadlocks. */
 
     Meta meta;
+    BTC::Coin coin{BTC::Coin::Unknown};
     RWLock metaLock;
 
     std::atomic<std::underlying_type_t<SaveItem>> pendingSaves{0};
@@ -1979,13 +1980,16 @@ void Storage::startup()
             }
             p->meta = m_db;
             Debug () << "Read meta from db ok";
-            if (!p->meta.coin.isEmpty())
+            if (!p->meta.coin.isEmpty()) {
                 Log() << "Coin: " << p->meta.coin;
+                p->coin = BTC::coinFromName(p->meta.coin);
+            }
             if (!p->meta.chain.isEmpty())
                 Log() << "Chain: " << p->meta.chain;
         } else {
             // ok, did not exist .. write a new one to db
             saveMeta_impl();
+            p->coin = BTC::coinFromName(p->meta.coin);
         }
         if (isDirty()) {
             throw DatabaseError("It appears that " APPNAME " was forcefully killed in the middle of committing a block to the db. "
@@ -2294,6 +2298,15 @@ void Storage::setCoin(const QString &coin) {
         auto [verif, lock] = headerVerifier();
         verif.setCoin(BTC::coinFromName(coin));
     }
+
+    p->coin = BTC::coinFromName(coin);
+    if (p->headersFile) {
+        QString err;
+        p->headersFile.reset();
+        p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers",
+                                                     size_t(p->blockHeaderSize()), 0x00f026a1);
+    }
+
 }
 
 bool Storage::isRpaEnabled() const
@@ -2472,7 +2485,9 @@ auto Storage::headersFromHeight(BlockHeight height, unsigned count, QString *err
 void Storage::loadCheckHeadersInDB()
 {
     assert(p->blockHeaderSize() > 0);
-    p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers", size_t(p->blockHeaderSize()), 0x00f026a1); // may throw
+    p->coin = BTC::coinFromName(getCoin());
+    p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers",
+                                                 size_t(p->blockHeaderSize()), 0x00f026a1); // may throw
 
     Log() << "Verifying headers ...";
     uint32_t num = unsigned(p->headersFile->numRecords());
@@ -3649,6 +3664,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
                 if constexpr (debugPrt) DebugM("Deleted undo for block ", expireUndoHeight, ", earliest now ", p->earliestUndoHeight.load());
             }
 
+            rawHeader += ppb->extraHeader;
             appendHeader(rawHeader, ppb->height);
 
             if (UNLIKELY(ppb->height == 0)) {
@@ -3660,7 +3676,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
                     prev = QByteArray(prev);
                     std::reverse(prev.begin(), prev.end());
                 }
-                p->genesisHash = BTC::BlockHashForCoin(rawHeader, prev, coin); // this variable is guarded by p->headerVerifierLock
+                p->genesisHash = BTC::BlockHashForCoin(rawHeader.left(BTC::GetBlockHeaderSize()), prev, coin); // guarded by headerVerifierLock
             }
 
             if (size_t limit; p->db.utxoCache && (limit = options->utxoCache) && p->db.utxoCache->memUsage() > limit)

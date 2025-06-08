@@ -1368,6 +1368,13 @@ static QVariantMap mkHeaderHexResponse(unsigned height, const QByteArray & heade
     m.insert(QByteArrayLiteral("hex"), Util::ToHexFast(header));
     return m;
 }
+static QVariantMap mkHeaderHexResponseEx(unsigned height, const QByteArray & header)
+{
+    QVariantMap m;
+    m.insert(QByteArrayLiteral("height"), height);
+    m.insert(QByteArrayLiteral("hex"), Util::ToHexFast(header));
+    return m;
+}
 void Server::rpc_blockchain_headers_get_tip(Client *c, const RPC::BatchId batchId, const RPC::Message &m)
 {
     Storage::Header hdr;
@@ -1445,6 +1452,46 @@ void Server::rpc_blockchain_header_get(Client *c, const RPC::BatchId batchId, co
     } else {
         throw RPCError("Invalid height or hash specified", RPC::ErrorCodes::Code_InvalidParams);
     }
+}
+
+void Server::rpc_blockchain_header_get_ex(Client *c, const RPC::BatchId batchId, const RPC::Message &m)
+{
+    const QVariantList l(m.paramsList());
+    assert(!l.isEmpty());
+    if (const auto var = l[0]; Compat::IsMetaType(var, QMetaType::Type::QString) || Compat::IsMetaType(var, QMetaType::Type::QByteArray)) {
+        const BlockHash blockHash = parseFirstHashParamCommon(m, "Invalid blockhash");
+        generic_async_to_bitcoind(c, batchId, m.id, "getblockheader", {var, true},
+                                  [blockHash, this, c, batchId, msgId = m.id](const RPC::Message &resp){
+            const auto map = resp.result().toMap();
+            bool ok;
+            if (!map.contains("confirmations") || map.value("confirmations", -1).toInt(&ok) < 0 || !ok)
+                throw RPCError("Block not in active chain");
+            const BlockHeight height = map.value("height", "").toUInt(&ok);
+            if (!ok)
+                throw RPCError("Unable to parse height response from bitcoind", RPC::ErrorCodes::Code_InternalError);
+            impl_blockchain_header_get_ex(c, batchId, msgId, height);
+            return DontAutoSendReply;
+        });
+    } else if (var.canConvert<int>()) {
+        bool ok;
+        const int height = var.toInt(&ok);
+        if (!ok || height < 0)
+            throw RPCError("Invalid height");
+        impl_blockchain_header_get_ex(c, batchId, m.id, height);
+    } else {
+        throw RPCError("Invalid height or hash specified", RPC::ErrorCodes::Code_InvalidParams);
+    }
+}
+
+void Server::impl_blockchain_header_get_ex(Client *c, const RPC::BatchId batchId, const RPC::Message::Id &msgId, const BlockHeight height)
+{
+    generic_do_async(c, batchId, msgId, [height, this]{
+        QString err;
+        const auto optHdr = storage->headerForHeight(height, &err);
+        if (!optHdr)
+            throw RPCError(err);
+        return mkHeaderHexResponseEx(height, *optHdr);
+    });
 }
 void Server::impl_blockchain_header_get(Client *c, const RPC::BatchId batchId, const RPC::Message::Id &msgId, const BlockHeight height)
 {
@@ -2452,6 +2499,7 @@ HEY_COMPILER_PUT_STATIC_HERE(Server::StaticData::registry){
     { {"blockchain.headers.subscribe",      true,               false,    PR{0,0},                    },          MP(rpc_blockchain_headers_subscribe) },
     { {"blockchain.headers.unsubscribe",    true,               false,    PR{0,0},                    },          MP(rpc_blockchain_headers_unsubscribe) },
     { {"blockchain.header.get",             true,               false,    PR{1,1},                    },          MP(rpc_blockchain_header_get) },
+    { {"blockchain.header.get_ex",          true,               false,    PR{1,1},                    },          MP(rpc_blockchain_header_get_ex) },
     { {"blockchain.relayfee",               true,               false,    PR{0,0},                    },          MP(rpc_blockchain_relayfee) },
 
     { {"blockchain.scripthash.get_balance", true,               false,    PR{1,2},                    },          MP(rpc_blockchain_scripthash_get_balance) },

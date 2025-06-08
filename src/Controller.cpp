@@ -496,7 +496,7 @@ struct DownloadBlocksTask : CtlTask
     int q_ct = 0;
     const int max_q; // todo: tune this, for now it is numBitcoinDClients + 1
 
-    static constexpr int HEADER_SIZE = BTC::GetBlockHeaderSize();
+    const int HEADER_SIZE = BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(ctl->coinType());
 
     std::atomic<size_t> nTx = 0, nIns = 0, nOuts = 0;
 
@@ -517,7 +517,7 @@ struct DownloadBlocksTask : CtlTask
     // given a block height, return the index into our array
     size_t height2Index(size_t h) { return size_t( ((h-from) + stride-1) / stride ); }
 protected:
-    virtual VarDLTaskResult process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock);
+    virtual VarDLTaskResult process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock, const QByteArray &extraHeader);
 };
 
 DownloadBlocksTask::DownloadBlocksTask(unsigned from, unsigned to, unsigned stride, unsigned nClients, int rpaHeight, Controller *ctl_)
@@ -574,19 +574,23 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
             submitRequest("getblock", {var, false}, [this, bnum, hash](const RPC::Message & resp){
                 try {
                     auto rawblock = Util::ParseHexFast(resp.result().toByteArray());
-                    const auto header = rawblock.left(HEADER_SIZE); // we need a deep copy of this anyway so might as well take it now.
+                    const auto header = rawblock.left(HEADER_SIZE); // deep copy
+                    const auto stdHeader = header.left(BTC::GetBlockHeaderSize());
+                    const auto extraHeader = header.mid(BTC::GetBlockHeaderSize());
                     QByteArray chkHash;
-                    const auto prevBytes = header.mid(4, 32);
+                    const auto prevBytes = stdHeader.mid(4, 32);
                     QByteArray prevHash(prevBytes);
                     std::reverse(prevHash.begin(), prevHash.end());
                     if (bool sizeOk = header.length() == HEADER_SIZE;
-                        sizeOk && (chkHash = BTC::BlockHashForCoin(header, prevHash, ctl->isVGCCoin() ? BTC::Coin::VGC : BTC::Coin::Unknown)) == hash) {
+                        sizeOk && (chkHash = BTC::BlockHashForCoin(stdHeader, prevHash, ctl->isVGCCoin() ? BTC::Coin::VGC : BTC::Coin::Unknown)) == hash) {
                         PreProcessedBlockPtr maybe_ppb; // either this is filled
                         Controller::RpaOnlyModeDataPtr maybe_rpaOnlyMode;  // or this is.. but not both!
                         try {
-                            const auto cblock = BTC::Deserialize<bitcoin::CBlock>(rawblock, 0, allowSegWit, allowMimble, allowCashTokens, allowMimble /* throw if junk at end if Litecoin (catch deser. bugs) */);
+                            QByteArray trimmed = rawblock;
+                            trimmed.remove(BTC::GetBlockHeaderSize(), extraHeader.size());
+                            const auto cblock = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, allowSegWit, allowMimble, allowCashTokens, allowMimble /* throw if junk at end if Litecoin (catch deser. bugs) */);
                             {
-                                VarDLTaskResult var = process_block_guts(bnum, rawblock, cblock);
+                                VarDLTaskResult var = process_block_guts(bnum, rawblock, cblock, extraHeader);
                                 std::visit(
                                     Overloaded{
                                         [&](PreProcessedBlockPtr & p) { maybe_ppb = std::move(p); },
@@ -717,7 +721,7 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
 // This has been refactored out of do_get() above to offer polymorphic subclasses the ability to also leverage
 // the DownloadBlocksTask to get blocks to synch various things (such as synching the RPA index if it is detected to
 // be out-of-synch due to configuration change, etc).
-VarDLTaskResult DownloadBlocksTask::process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock)
+VarDLTaskResult DownloadBlocksTask::process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock, const QByteArray &extraHeader)
 {
     CoTask * rpaTaskIfEnabledForThisBlock = nullptr;
     // Determine if RPA indexing is enabled for this block, and if so, ensure this->rpaTask is created and pass down a
@@ -728,7 +732,9 @@ VarDLTaskResult DownloadBlocksTask::process_block_guts(unsigned bnum, const QByt
         rpaTaskIfEnabledForThisBlock = &*rpaTask;
     }
 
-    auto ppb = PreProcessedBlock::makeShared(bnum, size_t(rawblock.size()), cblock, rpaTaskIfEnabledForThisBlock);
+    auto ppb = PreProcessedBlock::makeShared(bnum, size_t(rawblock.size()), cblock,
+                                            rpaTaskIfEnabledForThisBlock,
+                                            extraHeader);
 
     if (UNLIKELY(rpaIsEnabledForThisBlock && bnum == unsigned(rpaStartHeight))) {
         Util::AsyncOnObject(ctl, [height = rpaStartHeight]{
@@ -746,10 +752,10 @@ struct DownloadBlocksTask_SynchRpa : DownloadBlocksTask
 {
     using DownloadBlocksTask::DownloadBlocksTask;
 protected:
-    VarDLTaskResult process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock) override final;
+    VarDLTaskResult process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock, const QByteArray &extraHeader) override final;
 };
 
-VarDLTaskResult DownloadBlocksTask_SynchRpa::process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock)
+VarDLTaskResult DownloadBlocksTask_SynchRpa::process_block_guts(unsigned bnum, const QByteArray &rawblock, const bitcoin::CBlock &cblock, const QByteArray &)
 {
     Controller::RpaOnlyModeDataPtr ret = std::make_shared<Controller::RpaOnlyModeData>();
     ret->height = bnum;
