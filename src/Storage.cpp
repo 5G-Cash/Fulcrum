@@ -2336,8 +2336,13 @@ auto Storage::latestTip(Header *hdrOut) const -> std::pair<int, HeaderHash> {
         ret.second.clear();
         if (hdrOut) hdrOut->clear();
     } else {
-        // .ret now has the actual header but we want the hash
-        ret.second = BTC::HashRev(ret.second);
+        const auto coin = BTC::coinFromName(getCoin());
+        QByteArray prevHash;
+        if (coin == BTC::Coin::VGC) {
+            prevHash = ret.second.mid(4, 32);
+            std::reverse(prevHash.begin(), prevHash.end());
+        }
+        ret.second = BTC::BlockHashForCoin(ret.second, prevHash, coin);
     }
     return ret;
 }
@@ -2484,7 +2489,15 @@ void Storage::loadCheckHeadersInDB()
 
             auto [verif, lock] = headerVerifier();
             // set genesis hash
-            p->genesisHash = BTC::HashRev(hVec.front());
+            {
+                const auto coin = BTC::coinFromName(getCoin());
+                QByteArray prev;
+                if (coin == BTC::Coin::VGC) {
+                    prev = hVec.front().mid(4, 32);
+                    std::reverse(prev.begin(), prev.end());
+                }
+                p->genesisHash = BTC::BlockHashForCoin(hVec.front(), prev, coin);
+            }
 
             err.clear();
             // read db
@@ -3576,7 +3589,16 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
             // save the last of the undo info, if in saveUndo mode
             if (undo) {
                 const auto t0 = Util::getTimeNS();
-                undo->hash = BTC::HashRev(rawHeader);
+                {
+                    const auto coin = BTC::coinFromName(getCoin());
+                    QByteArray prev;
+                    if (coin == BTC::Coin::VGC) {
+                        prev = QByteArray::fromRawData(rawHeader.constData()+4, 32);
+                        prev = QByteArray(prev); // deep copy
+                        std::reverse(prev.begin(), prev.end());
+                    }
+                    undo->hash = BTC::BlockHashForCoin(rawHeader, prev, coin);
+                }
                 undo->scriptHashes = Util::keySet<decltype (undo->scriptHashes)>(ppb->hashXAggregated);
                 static const QString errPrefix("Error saving undo info to undo db");
 
@@ -3626,7 +3648,14 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
 
             if (UNLIKELY(ppb->height == 0)) {
                 // update genesis hash now if block 0 -- this info is used by rpc method server.features
-                p->genesisHash = BTC::HashRev(rawHeader); // this variable is guarded by p->headerVerifierLock
+                const auto coin = BTC::coinFromName(getCoin());
+                QByteArray prev;
+                if (coin == BTC::Coin::VGC) {
+                    prev = QByteArray::fromRawData(rawHeader.constData()+4, 32);
+                    prev = QByteArray(prev);
+                    std::reverse(prev.begin(), prev.end());
+                }
+                p->genesisHash = BTC::BlockHashForCoin(rawHeader, prev, coin); // this variable is guarded by p->headerVerifierLock
             }
 
             if (size_t limit; p->db.utxoCache && (limit = options->utxoCache) && p->db.utxoCache->memUsage() > limit)
@@ -3754,7 +3783,14 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
         auto & undo = *undoOpt; // non-const because we swap out its scripthashes potentially below if notifySubs == true
 
         // ensure undo info sanity
-        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != BTC::HashRev(header)
+        QByteArray chkPrev;
+        const auto coinTmp = BTC::coinFromName(getCoin());
+        if (coinTmp == BTC::Coin::VGC) {
+            chkPrev = QByteArray::fromRawData(header.constData()+4, 32);
+            chkPrev = QByteArray(chkPrev);
+            std::reverse(chkPrev.begin(), chkPrev.end());
+        }
+        if (!undo.isValid() || undo.height != unsigned(tip) || undo.hash != BTC::BlockHashForCoin(header, chkPrev, coinTmp)
             || prevHeight+1 >= p->blkInfos.size() || p->blkInfos.empty() || p->blkInfos.back() != undo.blkInfo)
             throw DatabaseFormatError(QString("The undo information for height %1 was successfully retrieved from the "
                                               "database, but it failed an internal consistency check.").arg(tip));
@@ -4557,7 +4593,16 @@ auto Storage::getFirstUse(const HashX & hashX) const -> std::optional<FirstUse>
             const BlockHeight blockHeight = heightForTxNum(txNum).value(); // may throw
             return FirstUse(hashForTxNum(txNum).value(), /* .txHash */
                             blockHeight, /* .height */
-                            BTC::HashRev(headerForHeight(blockHeight).value()) /* .blockHash */);
+                            [&]{
+                                const auto coin = BTC::coinFromName(getCoin());
+                                QByteArray prev;
+                                const auto hdr = headerForHeight(blockHeight).value();
+                                if (coin == BTC::Coin::VGC) {
+                                    prev = hdr.mid(4, 32);
+                                    std::reverse(prev.begin(), prev.end());
+                                }
+                                return BTC::BlockHashForCoin(hdr, prev, coin);
+                            }() /* .blockHash */);
         } else {
             // try unconfirmed (mempool)
             auto [mempool, lock] = this->mempool();

@@ -322,6 +322,7 @@ win32 {
 # Tell QMake all of the below is relative to src/.
 VPATH += src/
 INCLUDEPATH += src/
+INCLUDEPATH += src/crypto/x16rv2
 
 SOURCES += \
     AbstractConnection.cpp \
@@ -366,6 +367,37 @@ SOURCES += \
     TXO.cpp \
     UPnP.cpp \
     Util.cpp \
+    crypto/x16rv2/Lyra2RE.c \
+    crypto/x16rv2/aes_helper.c \
+    crypto/x16rv2/blake.c \
+    crypto/x16rv2/bmw.c \
+    crypto/x16rv2/cubehash.c \
+    crypto/x16rv2/echo.c \
+    crypto/x16rv2/extra.c \
+    crypto/x16rv2/fugue.c \
+    crypto/x16rv2/gost_streebog.c \
+    crypto/x16rv2/groestl.c \
+    crypto/x16rv2/hamsi.c \
+    crypto/x16rv2/hamsi_helper.c \
+    crypto/x16rv2/haval.c \
+    crypto/x16rv2/haval_helper.c \
+    crypto/x16rv2/jh.c \
+    crypto/x16rv2/keccak.c \
+    crypto/x16rv2/luffa.c \
+    crypto/x16rv2/md_helper.c \
+    crypto/x16rv2/sha2.c \
+    crypto/x16rv2/sph_md_helper.c \
+    crypto/x16rv2/sph_sha2.c \
+    crypto/x16rv2/sph_sha2big.c \
+    crypto/x16rv2/shabal.c \
+    crypto/x16rv2/shavite.c \
+    crypto/x16rv2/simd.c \
+    crypto/x16rv2/skein.c \
+    crypto/x16rv2/whirlpool.c \
+    crypto/x16rv2/lyra2.cpp \
+    crypto/x16rv2/sponge.cpp \
+    crypto/x16rv2/tiger.cpp \
+    crypto/x16rv2/X16RV2.cpp \
     VarInt.cpp \
     Version.cpp \
     WebSocket.cpp \
@@ -407,6 +439,7 @@ HEADERS += \
     ServerMisc.h \
     Servers.h \
     Span.h \
+    crypto/x16rv2/X16RV2.h \
     SrvMgr.h \
     Storage.h \
     SSLCertMonitor.h \
