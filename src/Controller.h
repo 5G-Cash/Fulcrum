@@ -87,6 +87,10 @@ public:
         return type == BTC::Coin::BCH || type == BTC::Coin::Unknown;
     }
 
+    /// Thread-safe, lock-free accessor for the current coin type.
+    /// Call this instead of reading the coinType member directly.
+    BTC::Coin getCoinType() const { return coinType.load(std::memory_order_relaxed); }
+
     /// Type used internally by the putRpaIndex signal
     struct RpaOnlyModeData {
         BlockHeight height{};
@@ -208,8 +212,10 @@ private:
     /// notifies subscribed clients (if any).
     std::atomic_bool masterNotifySubsFlag = false;
 
-    /// Comes from DB. If DB had no entry (newly initialized DB), then we update this variable whe we first connect
-    /// to the BitcoinD.  We look for "/Satoshi..." in the useragen to set BTC, otherwise everything else is BCH.
+    /// Comes from DB. If DB had no entry (newly initialized DB), then we update this
+    /// variable when we first connect to BitcoinD. We look for "/Satoshi..." in the
+    /// user agent to set BTC; otherwise everything else is BCH. Use getCoinType() to
+    /// read the current value.
     std::atomic<BTC::Coin> coinType = BTC::Coin::Unknown;
 
     /// takes locks, prints to Log() every 30 seconds if there were changes
