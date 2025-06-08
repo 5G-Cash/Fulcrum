@@ -1069,7 +1069,10 @@ struct Storage::Pvt
 
     Pvt(const Pvt &) = delete;
 
-    constexpr int blockHeaderSize() { return BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(coin); }
+    constexpr int blockHeaderSize() {
+        const int extra = BTC::extraHeaderSizeForCoin(coin);
+        return BTC::GetBlockHeaderSize() + (coin == BTC::Coin::VGC ? 0 : extra);
+    }
 
     /* NOTE: If taking multiple locks, all locks should be taken in the order they are declared, to avoid deadlocks. */
 

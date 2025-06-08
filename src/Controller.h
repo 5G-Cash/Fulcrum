@@ -91,8 +91,6 @@ public:
 
     BTC::Coin getCoinType() const { return coinType.load(std::memory_order_relaxed); }
 
-
-
     /// Type used internally by the putRpaIndex signal
     struct RpaOnlyModeData {
         BlockHeight height{};

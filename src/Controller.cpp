@@ -496,8 +496,6 @@ struct DownloadBlocksTask : CtlTask
     int q_ct = 0;
     const int max_q; // todo: tune this, for now it is numBitcoinDClients + 1
 
-    const int HEADER_SIZE = BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(ctl->getCoinType());
-
     std::atomic<size_t> nTx = 0, nIns = 0, nOuts = 0;
 
     const bool allowSegWit; ///< initted in c'tor. If true, deserialize blocks using the optional segwit extensons to the tx format.
@@ -574,20 +572,23 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
             submitRequest("getblock", {var, false}, [this, bnum, hash](const RPC::Message & resp){
                 try {
                     auto rawblock = Util::ParseHexFast(resp.result().toByteArray());
-                    const auto header = rawblock.left(HEADER_SIZE); // deep copy
+                    const int extraHeaderSize = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
+                    const int headerSize = BTC::GetBlockHeaderSize() + (ctl->isVGCCoin() ? 0 : extraHeaderSize);
+                    const auto header = rawblock.left(headerSize); // deep copy
                     const auto stdHeader = header.left(BTC::GetBlockHeaderSize());
-                    const auto extraHeader = header.mid(BTC::GetBlockHeaderSize());
+                    const auto extraHeader = ctl->isVGCCoin() ? QByteArray{} : header.mid(BTC::GetBlockHeaderSize());
                     QByteArray chkHash;
                     const auto prevBytes = stdHeader.mid(4, 32);
                     QByteArray prevHash(prevBytes);
                     std::reverse(prevHash.begin(), prevHash.end());
-                    if (bool sizeOk = header.length() == HEADER_SIZE;
+                    if (bool sizeOk = header.length() == headerSize;
                         sizeOk && (chkHash = BTC::BlockHashForCoin(stdHeader, prevHash, ctl->isVGCCoin() ? BTC::Coin::VGC : BTC::Coin::Unknown)) == hash) {
                         PreProcessedBlockPtr maybe_ppb; // either this is filled
                         Controller::RpaOnlyModeDataPtr maybe_rpaOnlyMode;  // or this is.. but not both!
                         try {
                             QByteArray trimmed = rawblock;
-                            trimmed.remove(BTC::GetBlockHeaderSize(), extraHeader.size());
+                            const int extraHeaderSize = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
+                            trimmed.remove(BTC::GetBlockHeaderSize(), extraHeaderSize);
                             const auto cblock = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, allowSegWit, allowMimble, allowCashTokens, allowMimble /* throw if junk at end if Litecoin (catch deser. bugs) */);
                             {
                                 VarDLTaskResult var = process_block_guts(bnum, rawblock, cblock, extraHeader);
