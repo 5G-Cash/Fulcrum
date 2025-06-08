@@ -1,0 +1,14 @@
+{
+    "node1.fiveg.cash": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4.2"
+    },
+    "node2.fiveg.cash": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4.2"
+    }
+}
