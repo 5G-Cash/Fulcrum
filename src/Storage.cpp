@@ -2290,6 +2290,10 @@ void Storage::setCoin(const QString &coin) {
     if (!coin.isEmpty())
         Log() << "Coin: " << coin;
     save(SaveItem::Meta);
+    {
+        auto [verif, lock] = headerVerifier();
+        verif.setCoin(BTC::coinFromName(coin));
+    }
 }
 
 bool Storage::isRpaEnabled() const
@@ -2488,6 +2492,7 @@ void Storage::loadCheckHeadersInDB()
                 throw DatabaseFormatError(QString("%1. Possible databaase corruption. Delete the datadir and resynch.").arg(err.isEmpty() ? "Could not read all headers" : err));
 
             auto [verif, lock] = headerVerifier();
+            verif.setCoin(BTC::coinFromName(getCoin()));
             // set genesis hash
             {
                 const auto coin = BTC::coinFromName(getCoin());
@@ -3798,7 +3803,8 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
             // all sanity check passed. Now, undo things in reverse order of what we did in addBlock above, rougly speaking
 
             // first, undo the header
-            p->headerVerifier.reset(prevHeight+1, prevHeader);
+            QByteArray newPrevHash = BTC::BlockHashForCoin(prevHeader, chkPrev, coinTmp);
+            p->headerVerifier.reset(prevHeight+1, prevHeader, newPrevHash);
             setDirty(true); // <-- no turning back. we clear this flag at the end
             deleteHeadersPastHeight(prevHeight); // commit change to db
             p->merkleCache->truncate(prevHeight+1); // this takes a length, not a height, which is always +1 the height
