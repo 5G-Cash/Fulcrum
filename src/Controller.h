@@ -87,8 +87,7 @@ public:
         return type == BTC::Coin::BCH || type == BTC::Coin::Unknown;
     }
 
-    /// Thread-safe, lock-free accessor for the current coin type.
-    /// Call this instead of reading the coinType member directly.
+
     BTC::Coin getCoinType() const { return coinType.load(std::memory_order_relaxed); }
 
     /// Type used internally by the putRpaIndex signal
