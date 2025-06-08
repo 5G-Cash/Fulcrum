@@ -208,12 +208,17 @@ namespace BTC
     /// If that is ever not the case, operator() returns false. Returns true otherwise.
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
+        QByteArray prevHash; ///< the hash of the previous header, BlockHashForCoin() form
         long prevHeight = -1;
+        Coin coinType{Coin::Unknown};
 
         bool checkInner(long height, const bitcoin::CBlockHeader &, QString *err);
     public:
         HeaderVerifier() = default;
         HeaderVerifier(unsigned fromHeight) : prevHeight(long(fromHeight)-1) {}
+        explicit HeaderVerifier(Coin c) : coinType(c) {}
+
+        void setCoin(Coin c) { coinType = c; }
 
         /// keep calling this from a loop. Returns false if current header's hashPrevBlock  != the last header's hash.
         bool operator()(const QByteArray & header, QString *err = nullptr);
@@ -222,7 +227,14 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
-        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray()) { prevHeight = long(nextHeight)-1; prev = prevHeader; }
+        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), QByteArray prevHashIn = QByteArray())
+        {
+            prevHeight = long(nextHeight)-1;
+            prev = std::move(prevHeader);
+            prevHash = std::move(prevHashIn);
+            if (!prevHash.isEmpty())
+                std::reverse(prevHash.begin(), prevHash.end());
+        }
     };
 
     /// Trivial hasher for sha256, rmd160, etc hashed byte arrays (for use with std::unordered_map,
