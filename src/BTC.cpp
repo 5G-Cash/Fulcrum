@@ -104,15 +104,21 @@ namespace BTC
     bool HeaderVerifier::operator()(const QByteArray & header, QString *err)
     {
         const long height = prevHeight+1;
-        if (header.size() != BTC::GetBlockHeaderSize()) {
+        if (header.size() < BTC::GetBlockHeaderSize()) {
             if (err) *err = QString("Header verification failed for header at height %1: wrong size").arg(height);
             return false;
         }
-        bitcoin::CBlockHeader curHdr = Deserialize<bitcoin::CBlockHeader>(header);
+        const QByteArray headerBytes = header.left(BTC::GetBlockHeaderSize());
+        bitcoin::CBlockHeader curHdr = Deserialize<bitcoin::CBlockHeader>(headerBytes);
         if (!checkInner(height, curHdr, err))
             return false;
         prevHeight = height;
-        prev = header;
+        prev = headerBytes;
+        QByteArray prevBig = prevHash;
+        std::reverse(prevBig.begin(), prevBig.end());
+        QByteArray h = BlockHashForCoin(headerBytes, prevBig, coinType);
+        prevHash = h;
+        std::reverse(prevHash.begin(), prevHash.end());
         if (err) err->clear();
         return true;
     }
@@ -120,14 +126,20 @@ namespace BTC
     {
         const long height = prevHeight+1;
         QByteArray header = Serialize(curHdr);
-        if (header.size() != BTC::GetBlockHeaderSize()) {
+        if (header.size() < BTC::GetBlockHeaderSize()) {
             if (err) *err = QString("Header verification failed for header at height %1: wrong size").arg(height);
             return false;
         }
+        header.truncate(BTC::GetBlockHeaderSize());
         if (!checkInner(height, curHdr, err))
             return false;
         prevHeight = height;
         prev = header;
+        QByteArray prevBig = prevHash;
+        std::reverse(prevBig.begin(), prevBig.end());
+        QByteArray h = BlockHashForCoin(header, prevBig, coinType);
+        prevHash = h;
+        std::reverse(prevHash.begin(), prevHash.end());
         if (err) err->clear();
         return true;
     }
@@ -138,9 +150,12 @@ namespace BTC
             if (err) *err = QString("Header verification failed for header at height %1: failed to deserialize").arg(height);
             return false;
         }
-        if (!prev.isEmpty() && Hash(prev) != QByteArray::fromRawData(reinterpret_cast<const char *>(curHdr.hashPrevBlock.begin()), int(curHdr.hashPrevBlock.width())) ) {
-            if (err) *err = QString("Header %1 'hashPrevBlock' does not match the contents of the previous block").arg(height);
-            return false;
+        if (!prev.isEmpty()) {
+            QByteArray expected = QByteArray::fromRawData(reinterpret_cast<const char *>(curHdr.hashPrevBlock.begin()), int(curHdr.hashPrevBlock.width()));
+            if (expected != prevHash) {
+                if (err) *err = QString("Header %1 'hashPrevBlock' does not match the contents of the previous block").arg(height);
+                return false;
+            }
         }
         return true;
     }

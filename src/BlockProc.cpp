@@ -34,13 +34,15 @@
 /* static */ const TxHash PreProcessedBlock::nullhash;
 
 /// fill this struct's data with all the txdata, etc from a bitcoin CBlock. Alternative to using the second c'tor.
-void PreProcessedBlock::fill(BlockHeight blockHeight, size_t blockSize, const bitcoin::CBlock &b, CoTask *rpaTask) {
+void PreProcessedBlock::fill(BlockHeight blockHeight, size_t blockSize, const bitcoin::CBlock &b,
+                             CoTask *rpaTask, QByteArray extra) {
     if (!header.IsNull() || !txInfos.empty())
         clear();
     height = blockHeight;
     sizeBytes = blockSize;
     header = b.GetBlockHeader();
-    estimatedThisSizeBytes = sizeof(*this) + size_t(BTC::GetBlockHeaderSize());
+    extraHeader = std::move(extra);
+    estimatedThisSizeBytes = sizeof(*this) + size_t(BTC::GetBlockHeaderSize()) + extraHeader.size();
     txInfos.reserve(b.vtx.size());
     std::unordered_map<TxHash, unsigned, HashHasher> txHashToIndex; // since we know the size ahead of time here, we can set max_load_factor to 1.0 and avoid over-allocating the hash table
     txHashToIndex.max_load_factor(1.0);
@@ -269,9 +271,10 @@ QString PreProcessedBlock::toDebugString() const
 
 /// convenience factory static method: given a block, return a shard_ptr instance of this struct
 /*static*/
-PreProcessedBlockPtr PreProcessedBlock::makeShared(unsigned height_, size_t size, const bitcoin::CBlock &block, CoTask *rpaTask)
+PreProcessedBlockPtr PreProcessedBlock::makeShared(unsigned height_, size_t size, const bitcoin::CBlock &block,
+                                                   CoTask *rpaTask, QByteArray extra)
 {
-    return std::make_shared<PreProcessedBlock>(height_, size, block, rpaTask);
+    return std::make_shared<PreProcessedBlock>(height_, size, block, rpaTask, std::move(extra));
 }
 
 

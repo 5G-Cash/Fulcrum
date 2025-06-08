@@ -1069,11 +1069,12 @@ struct Storage::Pvt
 
     Pvt(const Pvt &) = delete;
 
-    constexpr int blockHeaderSize() { return BTC::GetBlockHeaderSize(); }
+    constexpr int blockHeaderSize() { return BTC::GetBlockHeaderSize() + BTC::extraHeaderSizeForCoin(coin); }
 
     /* NOTE: If taking multiple locks, all locks should be taken in the order they are declared, to avoid deadlocks. */
 
     Meta meta;
+    BTC::Coin coin{BTC::Coin::Unknown};
     RWLock metaLock;
 
     std::atomic<std::underlying_type_t<SaveItem>> pendingSaves{0};
@@ -1979,13 +1980,16 @@ void Storage::startup()
             }
             p->meta = m_db;
             Debug () << "Read meta from db ok";
-            if (!p->meta.coin.isEmpty())
+            if (!p->meta.coin.isEmpty()) {
                 Log() << "Coin: " << p->meta.coin;
+                p->coin = BTC::coinFromName(p->meta.coin);
+            }
             if (!p->meta.chain.isEmpty())
                 Log() << "Chain: " << p->meta.chain;
         } else {
             // ok, did not exist .. write a new one to db
             saveMeta_impl();
+            p->coin = BTC::coinFromName(p->meta.coin);
         }
         if (isDirty()) {
             throw DatabaseError("It appears that " APPNAME " was forcefully killed in the middle of committing a block to the db. "
@@ -2290,6 +2294,17 @@ void Storage::setCoin(const QString &coin) {
     if (!coin.isEmpty())
         Log() << "Coin: " << coin;
     save(SaveItem::Meta);
+    {
+        auto [verif, lock] = headerVerifier();
+        verif.setCoin(BTC::coinFromName(coin));
+    }
+    p->coin = BTC::coinFromName(coin);
+    if (p->headersFile) {
+        QString err;
+        p->headersFile.reset();
+        p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers",
+                                                     size_t(p->blockHeaderSize()), 0x00f026a1);
+    }
 }
 
 bool Storage::isRpaEnabled() const
@@ -2468,7 +2483,9 @@ auto Storage::headersFromHeight(BlockHeight height, unsigned count, QString *err
 void Storage::loadCheckHeadersInDB()
 {
     assert(p->blockHeaderSize() > 0);
-    p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers", size_t(p->blockHeaderSize()), 0x00f026a1); // may throw
+    p->coin = BTC::coinFromName(getCoin());
+    p->headersFile = std::make_unique<RecordFile>(options->datadir + QDir::separator() + "headers",
+                                                 size_t(p->blockHeaderSize()), 0x00f026a1); // may throw
 
     Log() << "Verifying headers ...";
     uint32_t num = unsigned(p->headersFile->numRecords());
@@ -2488,6 +2505,7 @@ void Storage::loadCheckHeadersInDB()
                 throw DatabaseFormatError(QString("%1. Possible databaase corruption. Delete the datadir and resynch.").arg(err.isEmpty() ? "Could not read all headers" : err));
 
             auto [verif, lock] = headerVerifier();
+            verif.setCoin(BTC::coinFromName(getCoin()));
             // set genesis hash
             {
                 const auto coin = BTC::coinFromName(getCoin());
@@ -3644,6 +3662,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
                 if constexpr (debugPrt) DebugM("Deleted undo for block ", expireUndoHeight, ", earliest now ", p->earliestUndoHeight.load());
             }
 
+            rawHeader += ppb->extraHeader;
             appendHeader(rawHeader, ppb->height);
 
             if (UNLIKELY(ppb->height == 0)) {
@@ -3655,7 +3674,7 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
                     prev = QByteArray(prev);
                     std::reverse(prev.begin(), prev.end());
                 }
-                p->genesisHash = BTC::BlockHashForCoin(rawHeader, prev, coin); // this variable is guarded by p->headerVerifierLock
+                p->genesisHash = BTC::BlockHashForCoin(rawHeader.left(BTC::GetBlockHeaderSize()), prev, coin); // guarded by headerVerifierLock
             }
 
             if (size_t limit; p->db.utxoCache && (limit = options->utxoCache) && p->db.utxoCache->memUsage() > limit)
@@ -3798,7 +3817,8 @@ BlockHeight Storage::undoLatestBlock(bool notifySubs)
             // all sanity check passed. Now, undo things in reverse order of what we did in addBlock above, rougly speaking
 
             // first, undo the header
-            p->headerVerifier.reset(prevHeight+1, prevHeader);
+            QByteArray newPrevHash = BTC::BlockHashForCoin(prevHeader, chkPrev, coinTmp);
+            p->headerVerifier.reset(prevHeight+1, prevHeader, newPrevHash);
             setDirty(true); // <-- no turning back. we clear this flag at the end
             deleteHeadersPastHeight(prevHeight); // commit change to db
             p->merkleCache->truncate(prevHeight+1); // this takes a length, not a height, which is always +1 the height

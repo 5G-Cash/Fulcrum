@@ -48,6 +48,7 @@ struct PreProcessedBlock
     size_t estimatedThisSizeBytes = 0; ///< the estimated size of this data structure -- may be off by a bit but is useful for rough estimation of memory costs of block processing
     /// deserialized header as came in from bitcoind
     bitcoin::CBlockHeader header;
+    QByteArray extraHeader;
 
     struct TxInfo {
         TxHash hash; ///< 32 byte txid. These txid's are *reversed* from bitcoind's internal memory order. (so as to be closer to the final hex encoded format).
@@ -164,17 +165,19 @@ struct PreProcessedBlock
 
     // c'tors, etc... note this class is fully copyable and moveable
     PreProcessedBlock() = default;
-    PreProcessedBlock(BlockHeight bheight, size_t rawBlockSizeBytes, const bitcoin::CBlock &b, CoTask *rpaTask /* nullable */) {
-        fill(bheight, rawBlockSizeBytes, b, rpaTask);
+    PreProcessedBlock(BlockHeight bheight, size_t rawBlockSizeBytes, const bitcoin::CBlock &b,
+                      CoTask *rpaTask /* nullable */, QByteArray extra = {}) {
+        fill(bheight, rawBlockSizeBytes, b, rpaTask, std::move(extra));
     }
     /// reset this to empty
     inline void clear() { *this = PreProcessedBlock(); }
     /// fill this block with data from bitcoin's CBlock
-    void fill(BlockHeight blockHeight, size_t rawSizeBytes, const bitcoin::CBlock &b, CoTask *rpaTask /* nullable */);
+    void fill(BlockHeight blockHeight, size_t rawSizeBytes, const bitcoin::CBlock &b,
+              CoTask *rpaTask /* nullable */, QByteArray extra = {});
 
     /// convenience factory static method: given a block, return a shard_ptr instance of this struct
     static PreProcessedBlockPtr makeShared(unsigned height, size_t sizeBytes, const bitcoin::CBlock &block,
-                                           CoTask *rpaTask /* nullable */);
+                                           CoTask *rpaTask /* nullable */, QByteArray extra = {});
 
     /// debug string
     QString toDebugString() const;

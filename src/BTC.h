@@ -152,6 +152,18 @@ namespace BTC
 
     /// Helper -- returns the size of a block header. Should always be 80. Update this if that changes.
     constexpr int GetBlockHeaderSize() noexcept { return 80; }
+    /// Returns any extra bytes found at the end of a block header for a coin.
+    /// BCH/BTC/LTC headers have no extra bytes, but other coins may extend the
+    /// header with additional data.  The return value is the number of extra
+    /// bytes that come after the standard 80-byte header.
+    constexpr int extraHeaderSizeForCoin(Coin coin) noexcept
+    {
+        switch (coin) {
+        case Coin::VGC: return 4; // VGC headers include 4 additional bytes
+        default: break;
+        }
+        return 0;
+    }
 
     /// Returns the sha256 double hash (not reveresed -- little endian) of the input QByteArray. The results are copied
     /// once from the hasher into the returned QByteArray.  This is faster than obtaining a uint256 from bitcoin::Hash
@@ -208,12 +220,18 @@ namespace BTC
     /// If that is ever not the case, operator() returns false. Returns true otherwise.
     class HeaderVerifier {
         QByteArray prev; // 80 byte header data or empty
+        /// previous block hash in little-endian order (matches CBlockHeader::hashPrevBlock)
+        QByteArray prevHash;
         long prevHeight = -1;
+        Coin coinType{Coin::Unknown};
 
         bool checkInner(long height, const bitcoin::CBlockHeader &, QString *err);
     public:
         HeaderVerifier() = default;
         HeaderVerifier(unsigned fromHeight) : prevHeight(long(fromHeight)-1) {}
+        explicit HeaderVerifier(Coin c) : coinType(c) {}
+
+        void setCoin(Coin c) { coinType = c; }
 
         /// keep calling this from a loop. Returns false if current header's hashPrevBlock  != the last header's hash.
         bool operator()(const QByteArray & header, QString *err = nullptr);
@@ -222,7 +240,15 @@ namespace BTC
         std::pair<int, QByteArray> lastHeaderProcessed() const;
 
         bool isValid() const { return prev.length() == GetBlockHeaderSize(); }
-        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray()) { prevHeight = long(nextHeight)-1; prev = prevHeader; }
+        /// Reinitialize verifier state. prevHashIn should be the previous block hash in big-endian form.
+        void reset(unsigned nextHeight = 0, QByteArray prevHeader = QByteArray(), QByteArray prevHashIn = QByteArray())
+        {
+            prevHeight = long(nextHeight)-1;
+            prev = std::move(prevHeader);
+            prevHash = std::move(prevHashIn);
+            if (!prevHash.isEmpty())
+                std::reverse(prevHash.begin(), prevHash.end());
+        }
     };
 
     /// Trivial hasher for sha256, rmd160, etc hashed byte arrays (for use with std::unordered_map,
