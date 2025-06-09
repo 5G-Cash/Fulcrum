@@ -87,7 +87,6 @@ public:
         return type == BTC::Coin::BCH || type == BTC::Coin::Unknown;
     }
 
-    /// Thread-safe, lock-free, returns the current coin type
 
     BTC::Coin getCoinType() const { return coinType.load(std::memory_order_relaxed); }
 

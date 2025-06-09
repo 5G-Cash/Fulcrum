@@ -3667,12 +3667,13 @@ void Storage::addBlock(PreProcessedBlockPtr ppb, bool saveUndo, unsigned nReserv
                 if constexpr (debugPrt) DebugM("Deleted undo for block ", expireUndoHeight, ", earliest now ", p->earliestUndoHeight.load());
             }
 
-            rawHeader += ppb->extraHeader;
+            const auto coin = BTC::coinFromName(getCoin());
+            if (coin != BTC::Coin::VGC)
+                rawHeader += ppb->extraHeader;
             appendHeader(rawHeader, ppb->height);
 
             if (UNLIKELY(ppb->height == 0)) {
                 // update genesis hash now if block 0 -- this info is used by rpc method server.features
-                const auto coin = BTC::coinFromName(getCoin());
                 QByteArray prev;
                 if (coin == BTC::Coin::VGC) {
                     prev = QByteArray::fromRawData(rawHeader.constData()+4, 32);
