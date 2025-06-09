@@ -580,8 +580,20 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
                     if (ctl->isVGCCoin()) {
                         if (rawblock.size() >= baseHdr + kVgcExt.size() &&
                             rawblock.mid(baseHdr, kVgcExt.size()) == kVgcExt) {
+
+                            int pos = baseHdr + kVgcExt.size();
+                            if (auto opt = BTC::ReadCompactSizeAt(rawblock, pos)) {
+                                auto [len, used] = *opt;
+                                pos += used;
+                                if (rawblock.size() >= pos + int(len)) {
+                                    hasExtra = true;
+                                    extra = (pos - baseHdr) + int(len);
+                                }
+                            }
+
                             hasExtra = true;
                             extra = kVgcExt.size();
+
                         }
                     } else {
                         extra = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
