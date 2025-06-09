@@ -24,6 +24,7 @@
 #include "bitcoin/hash.h"
 #include "bitcoin/script.h"
 #include "bitcoin/streams.h"
+#include "bitcoin/serialize.h"
 #include "bitcoin/transaction.h"
 #include "bitcoin/version.h"
 
@@ -37,6 +38,7 @@
 #include <cstddef> // for std::byte, etc
 #include <cstring> // for memcpy
 #include <ios>
+#include <optional>
 #include <iterator>
 #include <type_traits>
 #include <utility> // for pair, etc
@@ -159,10 +161,31 @@ namespace BTC
     constexpr int extraHeaderSizeForCoin(Coin coin) noexcept
     {
         switch (coin) {
-        case Coin::VGC: return 4; // VGC headers may include a four-byte extension
-        default: break;
+        case Coin::VGC:
+            // VGC blocks may or may not have an extra 4-byte "VGC!" extension.
+            // Since the header size is variable, return 0 here and allow the
+            // deserialization code to trim the extension if present.
+            return 0;
+        default:
+            break;
         }
         return 0;
+    }
+
+    /// Parse a CompactSize integer at position `pos` in `ba`, returning the
+    /// value and number of bytes consumed. Returns {false,0} on failure.
+    inline std::optional<std::pair<uint64_t, int>>
+    ReadCompactSizeAt(const QByteArray &ba, int pos)
+    {
+        try {
+            bitcoin::GenericVectorReader<QByteArray> vr(bitcoin::SER_NETWORK,
+                                                        bitcoin::PROTOCOL_VERSION,
+                                                        ba, pos);
+            uint64_t val = bitcoin::ReadCompactSize(vr);
+            return std::make_pair(val, int(vr.GetPos() - pos));
+        } catch (const std::exception &) {
+            return std::nullopt;
+        }
     }
 
     /// Returns the sha256 double hash (not reveresed -- little endian) of the input QByteArray. The results are copied

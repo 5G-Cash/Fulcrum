@@ -12,13 +12,24 @@ TEST_SUITE(vgc_extension)
         TEST_CHECK_MESSAGE(f.open(QFile::ReadOnly), "Unable to open resource");
         const QByteArray blockData = f.readAll();
         const int baseHdr = BTC::GetBlockHeaderSize();
-        const int extSz   = BTC::extraHeaderSizeForCoin(BTC::Coin::VGC);
         static const QByteArray kVgcExt{"VGC!",4};
-        bool hasExtra = blockData.size() >= baseHdr + extSz &&
-                         blockData.mid(baseHdr, extSz) == kVgcExt;
+        bool hasExtra = false;
+        int extra = 0;
+        if (blockData.size() >= baseHdr + kVgcExt.size() &&
+            blockData.mid(baseHdr, kVgcExt.size()) == kVgcExt) {
+            int pos = baseHdr + kVgcExt.size();
+            if (auto opt = BTC::ReadCompactSizeAt(blockData, pos)) {
+                auto [len, used] = *opt;
+                pos += used;
+                if (blockData.size() >= pos + int(len)) {
+                    hasExtra = true;
+                    extra = (pos - baseHdr) + int(len);
+                }
+            }
+        }
         TEST_CHECK(!hasExtra);
         auto trimmed = blockData;
-        if (hasExtra) trimmed.remove(baseHdr, extSz);
+        if (hasExtra) trimmed.remove(baseHdr, extra);
         auto blk = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, false, false, true, false);
         TEST_CHECK(!blk.vtx.empty());
     };
