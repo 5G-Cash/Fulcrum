@@ -159,7 +159,7 @@ namespace BTC
     constexpr int extraHeaderSizeForCoin(Coin coin) noexcept
     {
         switch (coin) {
-        case Coin::VGC: return 4; // VGC headers include 4 additional bytes
+        case Coin::VGC: return 4; // VGC headers may include a four-byte extension
         default: break;
         }
         return 0;
