@@ -573,11 +573,18 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
             submitRequest("getblock", {var, false}, [this, bnum, hash](const RPC::Message & resp){
                 try {
                     auto rawblock = Util::ParseHexFast(resp.result().toByteArray());
-                    const int extraHeaderSize = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
-                    const int headerSize = BTC::GetBlockHeaderSize() + (ctl->isVGCCoin() ? 0 : extraHeaderSize);
+                    const int baseHdr = BTC::GetBlockHeaderSize();        // 80
+                    const int extSz   = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
+                    bool hasExtra = ctl->isVGCCoin() &&
+                                    rawblock.size() >= baseHdr + extSz;
+
+                    const int headerSize = baseHdr + (ctl->isVGCCoin() && hasExtra ? extSz
+                                                               : (!ctl->isVGCCoin() ? extSz : 0));
                     const auto header = rawblock.left(headerSize); // deep copy
-                    const auto stdHeader = header.left(BTC::GetBlockHeaderSize());
-                    const auto extraHeader = ctl->isVGCCoin() ? QByteArray{} : header.mid(BTC::GetBlockHeaderSize());
+                    const auto stdHeader = header.left(baseHdr);
+                    QByteArray extraHeader = (hasExtra || (!ctl->isVGCCoin() && extSz))
+                                            ? header.mid(baseHdr, extSz)
+                                            : QByteArray{};
                     QByteArray chkHash;
                     const auto prevBytes = stdHeader.mid(4, 32);
                     QByteArray prevHash(prevBytes);
@@ -588,8 +595,8 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
                         Controller::RpaOnlyModeDataPtr maybe_rpaOnlyMode;  // or this is.. but not both!
                         try {
                             QByteArray trimmed = rawblock;
-                            const int extraHeaderSize = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
-                            trimmed.remove(BTC::GetBlockHeaderSize(), extraHeaderSize);
+                            if (hasExtra || (!ctl->isVGCCoin() && extSz))
+                                trimmed.remove(baseHdr, extSz);
                             const auto cblock = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, allowSegWit, allowMimble, allowCashTokens, allowMimble /* throw if junk at end if Litecoin (catch deser. bugs) */);
                             {
                                 VarDLTaskResult var = process_block_guts(bnum, rawblock, cblock, extraHeader);
