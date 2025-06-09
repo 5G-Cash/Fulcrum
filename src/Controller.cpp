@@ -575,16 +575,22 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
                     auto rawblock = Util::ParseHexFast(resp.result().toByteArray());
                     const int baseHdr = BTC::GetBlockHeaderSize();        // 80
                     const int extSz   = BTC::extraHeaderSizeForCoin(ctl->getCoinType());
-                    bool hasExtra = ctl->isVGCCoin() &&
-                                    rawblock.size() >= baseHdr + extSz;
+                    static const QByteArray kVgcExt{"VGC!", 4};
+                    bool hasExtra = false;
+                    if (ctl->isVGCCoin() && rawblock.size() >= baseHdr + extSz) {
+                        hasExtra = rawblock.mid(baseHdr, extSz) == kVgcExt;
+                    }
 
-                    const int headerSize = baseHdr + (ctl->isVGCCoin() && hasExtra ? extSz
-                                                               : (!ctl->isVGCCoin() ? extSz : 0));
+                    const int headerSize = baseHdr +
+                                            (ctl->isVGCCoin() ? (hasExtra ? extSz : 0)
+                                                             : extSz);
                     const auto header = rawblock.left(headerSize); // deep copy
                     const auto stdHeader = header.left(baseHdr);
-                    QByteArray extraHeader = (hasExtra || (!ctl->isVGCCoin() && extSz))
-                                            ? header.mid(baseHdr, extSz)
-                                            : QByteArray{};
+                    QByteArray extraHeader;
+                    if (!ctl->isVGCCoin())
+                        extraHeader = header.mid(baseHdr, extSz);
+                    else if (hasExtra)
+                        extraHeader = header.mid(baseHdr, extSz);
                     QByteArray chkHash;
                     const auto prevBytes = stdHeader.mid(4, 32);
                     QByteArray prevHash(prevBytes);
@@ -595,7 +601,7 @@ void DownloadBlocksTask::do_get(unsigned int bnum)
                         Controller::RpaOnlyModeDataPtr maybe_rpaOnlyMode;  // or this is.. but not both!
                         try {
                             QByteArray trimmed = rawblock;
-                            if (hasExtra || (!ctl->isVGCCoin() && extSz))
+                            if (!ctl->isVGCCoin() || hasExtra)
                                 trimmed.remove(baseHdr, extSz);
                             const auto cblock = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, allowSegWit, allowMimble, allowCashTokens, allowMimble /* throw if junk at end if Litecoin (catch deser. bugs) */);
                             {
