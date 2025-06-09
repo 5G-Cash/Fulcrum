@@ -7,7 +7,7 @@ TEST_SUITE(vgc_extension)
 {
     TEST_CASE(no_extension_block)
     {
-        const QString path = ":testdata/bch_block_833705.bin";
+        const QString path = ":testdata/vgc_block.bin";
         QFile f(path);
         TEST_CHECK_MESSAGE(f.open(QFile::ReadOnly), "Unable to open resource");
         const QByteArray blockData = f.readAll();
