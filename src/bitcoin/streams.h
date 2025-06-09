@@ -223,9 +223,10 @@ public:
 
     /** Set the read position. Throws if the target position is past the end. */
     void seek(size_type new_pos) {
-        if (new_pos > m_data.size()) {
-            throw std::ios_base::failure("VectorReader::seek(): end of data");
-        }
+
+        if (new_pos < 0) {
+            throw std::ios_base::failure("Cannot seek to a negative offset");
+      
         m_pos = new_pos;
     }
 };

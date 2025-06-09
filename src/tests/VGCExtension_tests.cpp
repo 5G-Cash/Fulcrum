@@ -13,6 +13,7 @@ TEST_SUITE(vgc_extension)
         const QByteArray blockData = f.readAll();
         const int baseHdr = BTC::GetBlockHeaderSize();
         static const QByteArray kVgcExt{"VGC!",4};
+
         bool hasExtra = false;
         int extra = 0;
         if (blockData.size() >= baseHdr + kVgcExt.size() &&
@@ -30,6 +31,7 @@ TEST_SUITE(vgc_extension)
         TEST_CHECK(!hasExtra);
         auto trimmed = blockData;
         if (hasExtra) trimmed.remove(baseHdr, extra);
+
         auto blk = BTC::Deserialize<bitcoin::CBlock>(trimmed, 0, false, false, true, false);
         TEST_CHECK(!blk.vtx.empty());
     };
